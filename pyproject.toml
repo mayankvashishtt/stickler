@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "stickler-bench"
+version = "0.1.0"
+description = "Puzzles that test whether an AI can apply a rule exactly. Benchmark and RL environment."
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+
+[project.urls]
+Homepage = "https://mayankvashishtt.github.io/stickler/"
+Source = "https://github.com/mayankvashishtt/stickler"
+
+[project.scripts]
+stickler = "stickler.__main__:main"
+
+[tool.setuptools]
+packages = ["stickler"]

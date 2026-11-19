@@ -2,6 +2,12 @@
 
 **A puzzle test that shows where AI models break.** (Formerly GridForge.)
 
+**Website:** [mayankvashishtt.github.io/stickler](https://mayankvashishtt.github.io/stickler/): leaderboard, how it works, and a game where you spot the AI's mistakes.
+
+```bash
+pip install git+https://github.com/mayankvashishtt/stickler   # then: stickler bench --model <name>
+```
+
 Stickler makes picture puzzles out of coloured grids. Every puzzle is brand new (made by code
 from a number called a *seed*), so no model can have seen it before. The code knows the right answer
 and checks the model's answer automatically.
@@ -225,4 +231,5 @@ never memorise them.
 | `scripts/` | screenshots, comparison table, comparison runs |
 | `results/` | every run, every answer |
 | `data/stickler-74.jsonl` | the 74 leaderboard puzzles with answers, for other harnesses |
+| `web/` | the website and games (`scripts/export_web.py`, `scripts/export_daily.py` make its data) |
 | `proof/`, `slack-post/` | images |
