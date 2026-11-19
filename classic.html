@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Can you beat the AI?</title>
+<meta name="description" content="Find the hidden rule from 4 examples, paint the answer, and see how Claude models did on the same puzzle.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f4f1ea; --card:#fffdf8; --ink:#16130f; --mute:#6f675c; --line:#ddd5c7; --soft:#ebe5d9;
+  --good:#1f8a4c; --bad:#d23a2f; --accent:#ff5b1f; --seam:#2c2924; --wrong:#ffffff;
+  --c0:#1b1915; --c1:#2f6fe4; --c2:#e5484d; --c3:#2fb36b; --c4:#f5c518; --c5:#9b9488;
+  --c6:#d64fbf; --c7:#ff8a1f; --c8:#41c7e0; --c9:#8a3b1e;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12110f; --card:#1b1a17; --ink:#f2eee6; --mute:#a39a8c; --line:#302d28; --soft:#24221e; --c0:#0b0a09; --c5:#7d776d;}}
+:root[data-theme="dark"]{--bg:#12110f; --card:#1b1a17; --ink:#f2eee6; --mute:#a39a8c; --line:#302d28; --soft:#24221e; --c0:#0b0a09; --c5:#7d776d;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Bricolage Grotesque",system-ui,sans-serif}
+.wrap{max-width:1160px;margin:0 auto;padding:20px 16px 60px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
+.mark{font-weight:800;letter-spacing:-.03em;font-size:20px}
+.mark b{color:var(--accent)}
+.score{font:700 13px "JetBrains Mono",monospace;border:1.5px solid var(--ink);border-radius:99px;padding:5px 12px}
+h1{font-size:clamp(38px,7vw,76px);line-height:.95;letter-spacing:-.045em;margin:28px 0 14px;font-weight:800}
+h1 em{font-style:normal;color:var(--accent)}
+.lede{max-width:640px;font-size:19px;color:var(--mute);margin:0 0 22px}
+.lede strong{color:var(--ink)}
+button{font:700 15px "Bricolage Grotesque",sans-serif;cursor:pointer;border-radius:12px;border:1.5px solid var(--ink);background:var(--card);color:var(--ink);padding:10px 16px}
+button.go{background:var(--ink);color:var(--bg)}
+button.go:hover{background:var(--accent);border-color:var(--accent)}
+button:disabled{opacity:.4;cursor:default}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:26px 0 18px}
+.chip{border:1.5px solid var(--line);background:transparent;font-weight:600;font-size:14px;padding:7px 12px;border-radius:99px}
+.chip.on{border-color:var(--ink);background:var(--ink);color:var(--bg)}
+.chip small{font:500 11px "JetBrains Mono",monospace;opacity:.7;margin-left:6px}
+.board{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:18px}
+@media (max-width:860px){.board{grid-template-columns:1fr}}
+.panel{background:var(--card);border:1.5px solid var(--line);border-radius:18px;padding:16px}
+.ph{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;gap:10px}
+.ph h3{margin:0;font-size:15px;letter-spacing:.02em;text-transform:uppercase}
+.ph span{font:500 12px "JetBrains Mono",monospace;color:var(--mute)}
+.ex{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pair{display:flex;align-items:center;gap:8px;background:var(--soft);border-radius:12px;padding:8px}
+.pair canvas{flex:1;min-width:0}
+.arrow{font:700 14px "JetBrains Mono",monospace;color:var(--mute)}
+canvas{display:block;width:100%;height:auto;border-radius:6px}
+.testrow{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:520px){.testrow,.ex{grid-template-columns:1fr}}
+.lbl{font:700 11px "JetBrains Mono",monospace;text-transform:uppercase;letter-spacing:.08em;color:var(--mute);margin:0 0 6px}
+#paint{cursor:crosshair;touch-action:none;outline:2px solid var(--ink);outline-offset:2px}
+.palette{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0 10px}
+.sw{width:34px;height:34px;border-radius:9px;border:2px solid transparent;padding:0;font:700 11px "JetBrains Mono",monospace;color:#fff;text-shadow:0 1px 2px #0008}
+.sw.on{border-color:var(--ink);box-shadow:0 0 0 2px var(--bg) inset}
+.tools{display:flex;flex-wrap:wrap;gap:8px}
+.tools button{font-size:13px;padding:8px 12px}
+.verdict{display:none;margin-top:18px;border-radius:18px;padding:18px;border:1.5px solid var(--ink)}
+.verdict.show{display:block}
+.verdict h2{margin:0 0 4px;font-size:30px;letter-spacing:-.03em}
+.verdict p{margin:0;color:var(--mute)}
+.verdict .rule{margin-top:12px;font:500 13px/1.5 "JetBrains Mono",monospace;background:var(--soft);padding:10px 12px;border-radius:10px;color:var(--ink)}
+.ais{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:16px}
+@media (max-width:860px){.ais{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.ai{background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:10px}
+.ai .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-weight:700}
+.tag{font:700 11px "JetBrains Mono",monospace;padding:2px 8px;border-radius:99px;color:#fff}
+.tag.y{background:var(--good)} .tag.n{background:var(--bad)}
+.ai .said{font-size:12px;color:var(--mute);margin-top:8px;line-height:1.4;max-height:5.6em;overflow:hidden}
+.ai .none{display:grid;place-items:center;aspect-ratio:1;background:var(--soft);border-radius:6px;color:var(--mute);font-size:13px;text-align:center;padding:10px}
+.foot{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+.lb{margin-top:46px}
+.lb h2{font-size:30px;letter-spacing:-.03em;margin:0 0 12px}
+.row{display:grid;grid-template-columns:120px 1fr 80px;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.bar{height:14px;background:var(--soft);border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--ink);border-radius:99px}
+.row.you .bar i{background:var(--accent)}
+.row b{font:700 14px "JetBrains Mono",monospace;text-align:right}
+.note{font-size:13px;color:var(--mute);margin-top:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <a class="mark" href="index.html" style="text-decoration:none;color:inherit">stickler<b>.</b> <span style="font-weight:600;color:var(--mute)">play</span></a>
+    <div class="score" id="score">you: 0 / 0</div>
+  </header>
+
+  <h1>Can you beat <em>the AI</em><br>at a puzzle it hasn't seen?</h1>
+  <p class="lede">Each puzzle hides a rule. You get <strong>4 examples</strong>, then paint the answer yourself.
+    <strong>Every square must be right.</strong> Four Claude models tried the exact same puzzles with no tools.
+    The best one solved 59 of 74.</p>
+
+  <div class="chips" id="chips"></div>
+
+  <div class="board">
+    <section class="panel">
+      <div class="ph"><h3>Examples</h3><span id="pid"></span></div>
+      <div class="ex" id="ex"></div>
+    </section>
+    <section class="panel">
+      <div class="ph"><h3>Your turn</h3><span id="size"></span></div>
+      <div class="testrow">
+        <div><p class="lbl">before</p><canvas id="test"></canvas></div>
+        <div><p class="lbl">your answer (click &amp; drag)</p><canvas id="paint"></canvas></div>
+      </div>
+      <div class="palette" id="pal"></div>
+      <div class="tools">
+        <button id="copy">Copy the before grid</button>
+        <button id="clear">Clear</button>
+        <button class="go" id="check">Check my answer</button>
+      </div>
+    </section>
+  </div>
+
+  <section class="verdict" id="verdict">
+    <h2 id="vh"></h2>
+    <p id="vp"></p>
+    <div class="rule" id="vrule"></div>
+    <div class="ais" id="ais"></div>
+    <div class="foot">
+      <button class="go" id="next">Next puzzle</button>
+      <button id="share">Copy my result</button>
+    </div>
+  </section>
+
+  <section class="lb">
+    <h2>Leaderboard</h2>
+    <div id="lb"></div>
+    <p class="note">Models: Claude Code CLI, all tools off, one try each, exact match, same 74 puzzles.
+      Your score stays in this browser.</p>
+  </section>
+</div>
+
+<script>
+const MODELS = ["Fable 5.2", "Opus 5.5", "Sonnet 5.5", "Haiku 5.5"];
+const cssv = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const COL = () => Array.from({length: 10}, (_, i) => cssv(`--c${i}`));
+const $ = (s) => document.querySelector(s);
+let P = [], cur = null, ans = null, color = 1, cat = null, done = load();
+
+function load() { try { return JSON.parse(localStorage.getItem("bta-done") || "{}"); } catch { return {}; } }
+function save() { try { localStorage.setItem("bta-done", JSON.stringify(done)); } catch {} }
+const toG = (rows) => rows.map((r) => [...r].map(Number));
+
+function draw(cv, g, opts = {}) {
+  const h = g.length, w = g[0].length, s = 24;
+  cv.width = w * s; cv.height = h * s;
+  const x = cv.getContext("2d"), c = COL();
+  x.fillStyle = cssv("--seam"); x.fillRect(0, 0, cv.width, cv.height);
+  const gap = 2;
+  for (let i = 0; i < h; i++) for (let j = 0; j < w; j++) {
+    x.fillStyle = c[g[i][j]]; x.fillRect(j * s + gap / 2, i * s + gap / 2, s - gap, s - gap);
+    if (opts.wrong && opts.wrong[i][j]) {
+      x.strokeStyle = cssv("--wrong"); x.lineWidth = 4;
+      x.strokeRect(j * s + x.lineWidth / 2, i * s + x.lineWidth / 2, s - x.lineWidth, s - x.lineWidth);
+    }
+  }
+  cv.dataset.cell = s;
+}
+
+function chips() {
+  const cats = [...new Set(P.map((p) => p.cat))];
+  const rate = (c) => { const ps = P.filter((p) => p.cat === c); return Math.round(100 * ps.filter((p) => p.models["Fable 5.2"]?.solved).length / ps.length); };
+  $("#chips").innerHTML = cats.map((c) => `<button class="chip${c === cat ? " on" : ""}" data-c="${c}">${c}<small>best AI ${rate(c)}%</small></button>`).join("");
+  document.querySelectorAll(".chip").forEach((b) => b.onclick = () => { cat = b.dataset.c; pick(); });
+}
+
+function pick(id) {
+  let pool = P.filter((p) => !cat || p.cat === cat);
+  let p = id ? P.find((q) => q.id === id) : (pool.find((q) => !(q.id in done)) || pool[0]);
+  if (!p) p = P[0];
+  cur = p; cat = p.cat; chips();
+  location.hash = p.id;
+  $("#pid").textContent = `${p.id} · ${p.hint}`;
+  $("#ex").innerHTML = "";
+  p.train.forEach(([a, b]) => {
+    const d = document.createElement("div"); d.className = "pair";
+    const c1 = document.createElement("canvas"), c2 = document.createElement("canvas");
+    d.append(c1, Object.assign(document.createElement("span"), {className: "arrow", textContent: "→"}), c2);
+    $("#ex").append(d); draw(c1, toG(a)); draw(c2, toG(b));
+  });
+  const t = toG(p.test);
+  $("#size").textContent = `${t[0].length} × ${t.length} = ${t.length * t[0].length} squares`;
+  draw($("#test"), t);
+  ans = t.map((r) => r.map(() => 0));
+  draw($("#paint"), ans);
+  $("#verdict").classList.remove("show");
+}
+
+function palette() {
+  $("#pal").innerHTML = COL().map((c, i) => `<button class="sw${i === color ? " on" : ""}" style="background:${c}" data-i="${i}" aria-label="colour ${i}">${i}</button>`).join("");
+  document.querySelectorAll(".sw").forEach((b) => b.onclick = () => { color = +b.dataset.i; palette(); });
+}
+
+let painting = false;
+function paintAt(e) {
+  const cv = $("#paint"), r = cv.getBoundingClientRect();
+  const j = Math.floor((e.clientX - r.left) / r.width * ans[0].length), i = Math.floor((e.clientY - r.top) / r.height * ans.length);
+  if (i >= 0 && j >= 0 && i < ans.length && j < ans[0].length && ans[i][j] !== color) { ans[i][j] = color; draw(cv, ans); }
+}
+$("#paint").addEventListener("pointerdown", (e) => { painting = true; $("#paint").setPointerCapture(e.pointerId); paintAt(e); });
+$("#paint").addEventListener("pointermove", (e) => painting && paintAt(e));
+$("#paint").addEventListener("pointerup", () => painting = false);
+$("#copy").onclick = () => { ans = toG(cur.test); draw($("#paint"), ans); };
+$("#clear").onclick = () => { ans = ans.map((r) => r.map(() => 0)); draw($("#paint"), ans); };
+
+function diff(pred, gold) { return gold.map((r, i) => r.map((v, j) => !pred || !pred[i] || pred[i][j] !== v)); }
+
+$("#check").onclick = () => {
+  const gold = toG(cur.answer), wrong = diff(ans, gold);
+  const bad = wrong.flat().filter(Boolean).length, total = gold.length * gold[0].length;
+  const ok = bad === 0;
+  done[cur.id] = ok; save();
+  const beat = MODELS.filter((m) => !cur.models[m]?.solved);
+  $("#vh").textContent = ok ? (beat.length ? `Solved. You beat ${beat.length} of 4 AIs.` : "Solved. So did every AI.")
+                            : `${total - bad} of ${total} squares right. Not quite.`;
+  $("#vp").textContent = ok ? "Every square right." : "One wrong square counts as a fail, for the AIs too. Wrong squares are outlined.";
+  if (!ok) draw($("#paint"), ans, {wrong});
+  $("#vrule").textContent = "The hidden rule: " + cur.rule;
+  $("#ais").innerHTML = "";
+  MODELS.forEach((m) => {
+    const r = cur.models[m]; if (!r) return;
+    const card = document.createElement("div"); card.className = "ai";
+    card.innerHTML = `<div class="top">${m}<span class="tag ${r.solved ? "y" : "n"}">${r.solved ? "solved" : "failed"}</span></div>`;
+    if (r.pred) {
+      const cv = document.createElement("canvas"); card.append(cv);
+      const pg = toG(r.pred); const ok2 = pg.length === gold.length && pg[0].length === gold[0].length;
+      draw(cv, pg, ok2 ? {wrong: diff(pg, gold)} : {});
+      const n = ok2 ? diff(pg, gold).flat().filter(Boolean).length : null;
+      card.insertAdjacentHTML("beforeend", `<div class="said">${n ? `${n} wrong square${n > 1 ? "s" : ""}. ` : ""}${r.said ? "It said: " + esc(r.said) : ""}</div>`);
+    } else {
+      card.insertAdjacentHTML("beforeend", `<div class="none">No answer.<br>${r.said ? esc(r.said.slice(0, 90)) : ""}</div>`);
+    }
+    $("#ais").append(card);
+  });
+  $("#verdict").classList.add("show");
+  $("#verdict").scrollIntoView({behavior: "smooth", block: "start"});
+  board();
+};
+
+$("#next").onclick = () => {
+  const pool = P.filter((p) => p.cat === cat && !(p.id in done));
+  pick((pool[0] || P.find((p) => !(p.id in done)) || P[0]).id);
+  scrollTo({top: $("#chips").offsetTop - 10, behavior: "smooth"});
+};
+$("#share").onclick = () => {
+  const n = Object.values(done).filter(Boolean).length, t = Object.keys(done).length;
+  const txt = `I solved ${n} of ${t} AI puzzles. Fable got 59 of 74, Haiku got 30. Can you beat the AI? ${location.href.split("#")[0]}`;
+  navigator.clipboard?.writeText(txt); $("#share").textContent = "Copied";
+  setTimeout(() => $("#share").textContent = "Copy my result", 1500);
+};
+
+function board() {
+  const rows = MODELS.map((m) => { const s = P.filter((p) => p.models[m]?.solved).length; return [m, s, P.length]; });
+  const n = Object.values(done).filter(Boolean).length, t = Object.keys(done).length;
+  $("#score").textContent = `you: ${n} / ${t}`;
+  const all = [...rows, ["You", n, Math.max(t, 1)]].sort((a, b) => b[1] / b[2] - a[1] / a[2]);
+  $("#lb").innerHTML = all.map(([m, s, t2]) => `<div class="row${m === "You" ? " you" : ""}"><span>${m}</span>
+    <div class="bar"><i style="width:${100 * s / t2}%"></i></div><b>${m === "You" && !t ? "–" : Math.round(100 * s / t2) + "%"}</b></div>`).join("");
+}
+function esc(s) { return String(s).replace(/[&<>"]/g, (c) => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c])); }
+
+fetch("puzzles.json").then((r) => r.json()).then((d) => {
+  const ord = ["Colour by size", "Chain rules, 2 steps", "Count neighbours", "Chain rules, 3 steps", "Game of Life, medium", "Game of Life, large", "Game of Life, huge"];
+  P = d.sort((a, b) => ord.indexOf(a.cat) - ord.indexOf(b.cat));
+  palette(); pick(decodeURIComponent(location.hash.slice(1)) || null); board();
+});
+addEventListener("hashchange", () => { const id = decodeURIComponent(location.hash.slice(1)); if (P.length && id && id !== cur?.id) pick(id); });
+</script>
+</body>
+</html>

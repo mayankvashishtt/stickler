@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stickler</title>
+<meta name="description" content="A puzzle benchmark and training environment where one wrong square fails the answer. AI finds the rule; can it apply it exactly?">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f4f1ea; --card:#fffdf8; --ink:#16130f; --mute:#6f675c; --line:#ddd5c7; --soft:#ebe5d9;
+  --good:#1f8a4c; --bad:#d23a2f; --accent:#ff5b1f; --seam:#2c2924; --code:#1b1915; --codeink:#f2eee6;
+  --c0:#1b1915; --c1:#2f6fe4; --c2:#e5484d; --c3:#2fb36b; --c4:#f5c518; --c5:#9b9488;
+  --c6:#d64fbf; --c7:#ff8a1f; --c8:#41c7e0; --c9:#8a3b1e;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12110f; --card:#1b1a17; --ink:#f2eee6; --mute:#a39a8c; --line:#302d28; --soft:#24221e; --c0:#0b0a09; --c5:#7d776d; --code:#0b0a09;}}
+:root[data-theme="dark"]{--bg:#12110f; --card:#1b1a17; --ink:#f2eee6; --mute:#a39a8c; --line:#302d28; --soft:#24221e; --c0:#0b0a09; --c5:#7d776d; --code:#0b0a09;}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.55 "Bricolage Grotesque",system-ui,sans-serif}
+a{color:inherit}
+.wrap{max-width:1120px;margin:0 auto;padding:0 16px}
+nav.top{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+nav.top .wrap{display:flex;align-items:center;justify-content:space-between;height:60px;gap:12px}
+.mark{font-weight:800;letter-spacing:-.04em;font-size:22px;text-decoration:none}
+.mark i{font-style:normal;color:var(--accent)}
+.links{display:flex;gap:18px;align-items:center;font-weight:600;font-size:15px}
+.links a{text-decoration:none;color:var(--mute)} .links a:hover{color:var(--ink)}
+.links .cta{color:var(--bg);background:var(--ink);padding:7px 14px;border-radius:99px}
+.links .cta:hover{background:var(--accent);color:#fff}
+@media (max-width:760px){.links a:not(.cta){display:none}}
+.btn{display:inline-block;font:700 16px "Bricolage Grotesque",sans-serif;text-decoration:none;border-radius:12px;border:1.5px solid var(--ink);padding:12px 18px;background:var(--card);color:var(--ink);cursor:pointer}
+.btn.go{background:var(--ink);color:var(--bg)} .btn.go:hover{background:var(--accent);border-color:var(--accent);color:#fff}
+.hero{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center;padding:64px 0 40px}
+@media (max-width:900px){.hero{grid-template-columns:minmax(0,1fr);padding-top:36px}}
+.eyebrow{font:700 12px "JetBrains Mono",monospace;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);margin:0 0 14px}
+h1{font-size:clamp(42px,6.4vw,82px);line-height:.94;letter-spacing:-.05em;margin:0 0 18px;font-weight:800}
+h1 em{font-style:normal;color:var(--accent)}
+.lede{font-size:20px;color:var(--mute);margin:0 0 26px;max-width:560px}
+.lede b{color:var(--ink)}
+.ctas{display:flex;gap:10px;flex-wrap:wrap}
+.proof{background:var(--card);border:1.5px solid var(--line);border-radius:20px;padding:16px}
+.proof canvas{display:block;width:100%;height:auto;border-radius:8px}
+.proof .cap{display:flex;justify-content:space-between;gap:10px;margin-top:10px;font:500 13px "JetBrains Mono",monospace;color:var(--mute)}
+.proof .cap b{color:var(--bad)}
+section{padding:56px 0;border-top:1px solid var(--line)}
+h2{font-size:clamp(30px,4vw,46px);letter-spacing:-.04em;line-height:1;margin:0 0 10px}
+.sub{color:var(--mute);margin:0 0 28px;max-width:640px}
+.lb{display:grid;gap:4px}
+.lrow{display:grid;grid-template-columns:130px 1fr 92px;gap:14px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.lrow span{font-weight:700}
+.bar{height:16px;background:var(--soft);border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--ink);border-radius:99px;width:0;transition:width 1s cubic-bezier(.2,.8,.2,1)}
+.lrow.top .bar i{background:var(--accent)}
+.lrow b{font:700 15px "JetBrains Mono",monospace;text-align:right}
+.lrow.add span,.lrow.add b{color:var(--mute);font-weight:600}
+.lrow.add .bar{background:repeating-linear-gradient(90deg,var(--line) 0 8px,transparent 8px 14px)}
+.tablewrap{overflow-x:auto;margin-top:26px}
+table{border-collapse:collapse;width:100%;font-size:15px;min-width:560px}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line)}
+th{font:700 11px "JetBrains Mono",monospace;text-transform:uppercase;letter-spacing:.08em;color:var(--mute)}
+td.n{font:500 14px "JetBrains Mono",monospace}
+td .hot{background:color-mix(in srgb,var(--bad) 16%,transparent);color:var(--bad);border-radius:6px;padding:1px 6px}
+.steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+@media (max-width:820px){.steps{grid-template-columns:minmax(0,1fr)}}
+.step{background:var(--card);border:1.5px solid var(--line);border-radius:18px;padding:18px}
+.step .k{font:700 12px "JetBrains Mono",monospace;color:var(--accent)}
+.step h3{margin:6px 0 6px;font-size:22px;letter-spacing:-.02em}
+.step p{margin:0;color:var(--mute);font-size:16px}
+.mini{display:flex;align-items:center;gap:8px;margin-top:14px}
+.mini canvas{flex:1;min-width:0;border-radius:6px}
+.mini .ar{font:700 13px "JetBrains Mono",monospace;color:var(--mute)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+@media (max-width:820px){.two{grid-template-columns:minmax(0,1fr)}}
+.box{background:var(--soft);border-radius:18px;padding:18px}
+.box h3{margin:0 0 8px;font-size:20px}
+.box ul{margin:0;padding-left:18px;color:var(--mute)} .box li{margin:4px 0} .box li b{color:var(--ink)}
+.cmp td:first-child{font-weight:700}
+.yes{color:var(--good);font-weight:700} .no{color:var(--mute)}
+tr.us td{background:color-mix(in srgb,var(--accent) 9%,transparent)}
+.usps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-top:26px}
+@media (max-width:900px){.usps{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+@media (max-width:520px){.usps{grid-template-columns:minmax(0,1fr)}}
+.usp{border:1.5px solid var(--ink);border-radius:16px;padding:16px}
+.usp b{display:block;font-size:19px;letter-spacing:-.02em;margin-bottom:4px}
+.usp p{margin:0;color:var(--mute);font-size:15px}
+.tabs{display:inline-flex;gap:4px;background:var(--soft);padding:4px;border-radius:99px;margin-bottom:14px;flex-wrap:wrap}
+.tabs button{border:0;background:transparent;border-radius:99px;padding:8px 16px;font:700 14px "Bricolage Grotesque",sans-serif;color:var(--ink);cursor:pointer}
+.tabs button.on{background:var(--ink);color:var(--bg)}
+.code{position:relative;background:var(--code);color:var(--codeink);border-radius:16px;padding:18px 18px 18px;font:500 14px/1.65 "JetBrains Mono",monospace;overflow-x:auto;white-space:pre}
+.code .c{color:#9b9488}
+.code .s{color:#f5c518}
+.copy{position:absolute;top:10px;right:10px;font:700 12px "JetBrains Mono",monospace;background:#ffffff18;color:var(--codeink);border:0;border-radius:8px;padding:6px 10px;cursor:pointer}
+.panel p.note{color:var(--mute);font-size:15px;margin:12px 0 0}
+.play{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+@media (max-width:820px){.play{grid-template-columns:minmax(0,1fr)}}
+.card{display:block;text-decoration:none;background:var(--card);border:1.5px solid var(--line);border-radius:18px;padding:20px;transition:transform .2s,border-color .2s}
+.card:hover{transform:translateY(-3px);border-color:var(--ink)}
+.card .t{font:700 12px "JetBrains Mono",monospace;color:var(--accent);text-transform:uppercase;letter-spacing:.08em}
+.card h3{margin:6px 0 6px;font-size:24px;letter-spacing:-.03em}
+.card p{margin:0;color:var(--mute);font-size:16px}
+.card .go{display:inline-block;margin-top:14px;font-weight:700}
+footer{border-top:1px solid var(--line);padding:28px 0 50px;color:var(--mute);font-size:14px}
+footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<nav class="top"><div class="wrap">
+  <a class="mark" href="#">stickler<i>.</i></a>
+  <div class="links"><a href="#leaderboard">Leaderboard</a><a href="#how">How it works</a><a href="#why">Why it's different</a><a href="#use">Use it</a>
+    <a href="https://github.com/mayankvashishtt/stickler">GitHub</a><a class="cta" href="play.html">Play</a></div>
+</div></nav>
+
+<div class="wrap">
+  <header class="hero">
+    <div>
+      <p class="eyebrow">AI benchmark + training environment</p>
+      <h1>AI finds the rule.<br><em>It can't apply it exactly.</em></h1>
+      <p class="lede">Stickler is a puzzle test where <b>one wrong square fails the whole answer</b>. Every puzzle is brand new,
+        so no model has seen it. The best model we tested still slipped on 1 in 5.</p>
+      <div class="ctas"><a class="btn go" href="play.html">Spot the AI's mistake</a><a class="btn" href="#use">Test your model</a></div>
+    </div>
+    <figure class="proof" style="margin:0">
+      <canvas id="hero"></canvas>
+      <div class="cap"><span id="herocap">Opus 5.5 · Game of Life</span><b id="herobad"></b></div>
+    </figure>
+  </header>
+
+  <section id="leaderboard">
+    <h2>Leaderboard</h2>
+    <p class="sub">Same 74 puzzles for every model. No tools, no code, one try each. Exact match only.</p>
+    <div class="lb" id="lb"></div>
+    <div class="tablewrap"><table id="cats"></table></div>
+  </section>
+
+  <section id="how">
+    <h2>How it works</h2>
+    <p class="sub">A hidden rule changes a grid. The model sees 4 examples and has to draw the next answer, square by square.</p>
+    <div class="steps">
+      <div class="step"><span class="k">01</span><h3>4 examples</h3><p>Each one shows a grid before and after the secret rule.</p><div class="mini" id="m1"></div></div>
+      <div class="step"><span class="k">02</span><h3>A new grid</h3><p>Nobody tells the model the rule. It has to work it out, then apply it here.</p><div class="mini" id="m2"></div></div>
+      <div class="step"><span class="k">03</span><h3>Every square checked</h3><p>One wrong square out of 900 is a fail. That single slip is what we measure.</p><p class="mono" style="margin:10px 0 0;font:500 12px JetBrains Mono,monospace">right answer → Sonnet 5.5, 1 square off</p><div class="mini" id="m3"></div></div>
+    </div>
+    <div class="two">
+      <div class="box"><h3>It is fair</h3><ul>
+        <li><b>No trick questions.</b> A puzzle is thrown away if a second simple rule also fits the examples.</li>
+        <li><b>Every case is shown.</b> If the test needs "an empty square with 5 neighbours", the examples have one too.</li>
+        <li><b>Self-checked.</b> A perfect solver scores 100%, copying the input scores 0%.</li></ul></div>
+      <div class="box"><h3>What it found</h3><ul>
+        <li><b>Spotting the rule is easy.</b> Opus solved every 3-step chain puzzle.</li>
+        <li><b>Applying it exactly is not.</b> Even Fable failed 11 of 28 Game of Life puzzles.</li>
+        <li><b>Smaller models give up.</b> Haiku solved 0 Game of Life puzzles and often asked for a hint.</li></ul></div>
+    </div>
+  </section>
+
+  <section id="why">
+    <h2>Why it's different</h2>
+    <p class="sub">Most tests ask what a model knows. Stickler asks whether it can do careful work without a single slip.</p>
+    <div class="tablewrap"><table class="cmp">
+      <tr><th></th><th>New puzzles every time</th><th>Measures exact execution</th><th>Unlimited training data</th><th>Rejects ambiguous puzzles</th></tr>
+      <tr class="us"><td>Stickler</td><td class="yes">yes</td><td class="yes">yes, one square</td><td class="yes">yes</td><td class="yes">yes</td></tr>
+      <tr><td>ARC-AGI</td><td class="no">fixed set</td><td class="no">mixed with finding the rule</td><td class="no">no</td><td class="yes">by hand</td></tr>
+      <tr><td>Reasoning Gym</td><td class="yes">yes</td><td class="no">not its focus</td><td class="yes">yes</td><td class="no">varies by task</td></tr>
+      <tr><td>MMLU-style tests</td><td class="no">fixed set</td><td class="no">no, it's knowledge</td><td class="no">no</td><td class="no">n/a</td></tr>
+    </table></div>
+    <div class="usps">
+      <div class="usp"><b>The slip, isolated</b><p>Models write the right rule, then miss 1 square of 462. We catch exactly that.</p></div>
+      <div class="usp"><b>Can't be memorised</b><p>Puzzles come from a seed. Make a million, none leak into training data.</p></div>
+      <div class="usp"><b>Test and train</b><p>The same puzzles score a model and reward it during RL training.</p></div>
+      <div class="usp"><b>Every answer public</b><p>All prompts and replies are saved. Check any result yourself.</p></div>
+    </div>
+  </section>
+
+  <section id="use">
+    <h2>Use it</h2>
+    <p class="sub">Python 3.9+, nothing else to install. Works with any OpenAI-style API: OpenAI, Gemini, DeepSeek, OpenRouter, or a local model with Ollama.</p>
+    <div class="tabs" id="usetabs"><button class="on" data-k="test">Test a model</button><button data-k="train">Train a model</button><button data-k="own">Your own harness</button></div>
+    <div class="panel">
+      <div class="code" data-k="test"><button class="copy">copy</button><span class="c"># install</span>
+pip install git+https://github.com/mayankvashishtt/stickler
+
+<span class="c"># run the 74 leaderboard puzzles on your model</span>
+export OPENAI_API_KEY=<span class="s">sk-...</span>
+stickler bench --model <span class="s">gpt-5-mini</span> --workers 8
+
+<span class="c"># other providers: set the address</span>
+export OPENAI_BASE_URL=<span class="s">https://openrouter.ai/api/v1</span></div>
+      <div class="code" data-k="train" hidden><button class="copy">copy</button><span class="c"># every seed is a fresh puzzle: unlimited training data</span>
+from stickler.gen import generate
+from stickler.episode import GridEnv
+
+for seed in range(100_000):
+    env = GridEnv(generate(seed=seed, depth=2, size=<span class="s">"m"</span>), max_turns=3)
+    prompt = env.reset()
+    while True:
+        reply = my_model(prompt)                       <span class="c"># your policy</span>
+        prompt, reward, done, info = env.step(reply)   <span class="c"># 1.0 if perfect, else 0.5 x squares right</span>
+        if done: break</div>
+      <div class="code" data-k="own" hidden><button class="copy">copy</button><span class="c"># get the 74 puzzles as one file: id, prompt, answer</span>
+stickler export --out stickler-74.jsonl
+
+<span class="c"># score your answers: one JSON per line, {"id", "reply"} or {"id", "grid"}</span>
+stickler score my_predictions.jsonl</div>
+      <p class="note" id="usenote">Results land in <code>results/&lt;model&gt;/</code>. To get on the leaderboard, open a pull request with that folder.</p>
+    </div>
+  </section>
+
+  <section id="playlinks">
+    <h2>Try it yourself</h2>
+    <p class="sub">Same puzzles the models got. See how you compare.</p>
+    <div class="play">
+      <a class="card" href="play.html"><span class="t">30 seconds</span><h3>Spot the slip</h3><p>Real AI answers with 1 to 3 wrong squares. Find them.</p><span class="go">Play →</span></a>
+      <a class="card" href="play.html#daily"><span class="t">Daily</span><h3>Today's puzzle</h3><p>A small grid, 3 tries, same for everyone. Share your score.</p><span class="go">Play →</span></a>
+      <a class="card" href="classic.html"><span class="t">Hard mode</span><h3>Beat the AI</h3><p>Solve a full benchmark puzzle and see each model's answer next to yours.</p><span class="go">Play →</span></a>
+    </div>
+  </section>
+</div>
+
+<footer><div class="wrap"><span>Stickler · made by Mayank Vashisht</span><a href="https://github.com/mayankvashishtt/stickler">github.com/mayankvashishtt/stickler</a></div></footer>
+
+<script>
+const MODELS = ["Fable 5.2", "Opus 5.5", "Sonnet 5.5", "Haiku 5.5"];
+const ORDER = ["Chain rules, 2 steps", "Chain rules, 3 steps", "Colour by size", "Count neighbours", "Game of Life, medium", "Game of Life, large", "Game of Life, huge"];
+const cssv = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const COL = () => Array.from({length: 10}, (_, i) => cssv(`--c${i}`));
+const $ = (s) => document.querySelector(s);
+const toG = (rows) => rows.map((r) => [...r].map(Number));
+
+function draw(cv, g, wrong) {
+  const h = g.length, w = g[0].length, s = 24;
+  cv.width = w * s; cv.height = h * s;
+  const x = cv.getContext("2d"), c = COL();
+  x.fillStyle = cssv("--seam"); x.fillRect(0, 0, cv.width, cv.height);
+  for (let i = 0; i < h; i++) for (let j = 0; j < w; j++) { x.fillStyle = c[g[i][j]]; x.fillRect(j * s + 1, i * s + 1, s - 2, s - 2); }
+  (wrong || []).forEach(([i, j]) => { x.strokeStyle = "#fff"; x.lineWidth = 4; x.strokeRect(j * s + 2, i * s + 2, s - 4, s - 4);
+    x.strokeStyle = cssv("--bad"); x.lineWidth = 3; x.beginPath(); x.arc(j * s + s / 2, i * s + s / 2, s * 1.4, 0, 7); x.stroke(); });
+}
+function mini(el, a, b) {
+  const c1 = document.createElement("canvas"); el.append(c1); draw(c1, a.g, a.w);
+  if (b) { el.append(Object.assign(document.createElement("span"), {className: "ar", textContent: "→"}));
+    const c2 = document.createElement("canvas"); el.append(c2); draw(c2, b.g, b.w); }
+}
+const diff = (p, a) => { const out = []; a.forEach((r, i) => r.forEach((v, j) => p[i][j] !== v && out.push([i, j]))); return out; };
+
+document.querySelectorAll("#usetabs button").forEach((b) => b.onclick = () => {
+  document.querySelectorAll("#usetabs button").forEach((x) => x.classList.toggle("on", x === b));
+  document.querySelectorAll(".code").forEach((c) => c.hidden = c.dataset.k !== b.dataset.k);
+  $("#usenote").innerHTML = {test: "Results land in <code>results/&lt;model&gt;/</code>. To get on the leaderboard, open a pull request with that folder.",
+    train: "Reward is 1.0 for a perfect grid, otherwise 0.5 × the share of right squares. After a wrong try the model learns how many squares are off, never which. Keep the 74 leaderboard puzzles out of training.",
+    own: "The scorer reads grids out of free text, so you can pass raw model replies."}[b.dataset.k];
+});
+document.querySelectorAll(".copy").forEach((b) => b.onclick = () => {
+  const t = b.parentElement.innerText.replace(/^copy\n?/, "");
+  navigator.clipboard?.writeText(t); b.textContent = "copied"; setTimeout(() => b.textContent = "copy", 1400);
+});
+
+fetch("puzzles.json").then((r) => r.json()).then((P) => {
+  // hero: the famous one-square slip
+  const hp = P.find((p) => p.id === "life-l/13") || P[0], hm = hp.models["Opus 5.5"];
+  const a = toG(hp.answer), pr = toG(hm.pred), bad = diff(pr, a);
+  draw($("#hero"), pr, bad);
+  $("#herobad").textContent = `${a.length * a[0].length - bad.length} of ${a.length * a[0].length} right → fail`;
+
+  // leaderboard
+  const score = (m, ps = P) => ps.filter((p) => p.models[m]?.solved).length;
+  const rows = MODELS.map((m) => [m, score(m)]).sort((x, y) => y[1] - x[1]);
+  $("#lb").innerHTML = rows.map(([m, s], k) => `<div class="lrow${k ? "" : " top"}"><span>${m}</span><div class="bar"><i data-w="${100 * s / P.length}"></i></div><b>${s}/${P.length}</b></div>`).join("")
+    + `<a class="lrow add" href="#use" style="text-decoration:none"><span>Your model</span><div class="bar"></div><b>add it →</b></a>`;
+  requestAnimationFrame(() => setTimeout(() => document.querySelectorAll(".bar i").forEach((i) => i.style.width = i.dataset.w + "%"), 60));
+  const head = `<tr><th>Puzzle type</th>${MODELS.map((m) => `<th>${m}</th>`).join("")}</tr>`;
+  $("#cats").innerHTML = head + ORDER.map((c) => { const ps = P.filter((p) => p.cat === c);
+    return `<tr><td>${c}</td>${MODELS.map((m) => { const s = score(m, ps), r = s / ps.length; return `<td class="n">${r < .3 ? `<span class="hot">${s}/${ps.length}</span>` : `${s}/${ps.length}`}</td>`; }).join("")}</tr>`; }).join("");
+
+  // how it works minis
+  const ex = P.find((p) => p.id.startsWith("d2m")) || P[0];
+  mini($("#m1"), {g: toG(ex.train[0][0])}, {g: toG(ex.train[0][1])});
+  mini($("#m2"), {g: toG(ex.test)}, {g: toG(ex.test).map((r) => r.map(() => 0))});
+  const sp = P.find((p) => p.id === "d2m/10"), sm = sp.models["Sonnet 5.5"];
+  mini($("#m3"), {g: toG(sp.answer)}, {g: toG(sm.pred), w: diff(toG(sm.pred), toG(sp.answer))});
+});
+</script>
+</body>
+</html>
