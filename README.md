@@ -1,8 +1,8 @@
-# GridForge
+# Stickler
 
-**A puzzle test that shows where AI models break.**
+**A puzzle test that shows where AI models break.** (Formerly GridForge.)
 
-GridForge makes picture puzzles out of coloured grids. Every puzzle is brand new (made by code
+Stickler makes picture puzzles out of coloured grids. Every puzzle is brand new (made by code
 from a number called a *seed*), so no model can have seen it before. The code knows the right answer
 and checks the model's answer automatically.
 
@@ -100,10 +100,10 @@ Any model behind an OpenAI-style API works: OpenAI, Gemini, DeepSeek, OpenRouter
 Ollama or vLLM. It gets the **same 74 puzzles** as the table above, with no tools and one try each.
 
 ```bash
-git clone https://github.com/mayankvashishtt/gridforge.git && cd gridforge
+git clone https://github.com/mayankvashishtt/stickler.git && cd stickler
 
 export OPENAI_API_KEY=...                       # your own key
-python3 -m gridforge bench --model gpt-5-mini --workers 8
+python3 -m stickler bench --model gpt-5-mini --workers 8
 ```
 
 Other providers only need a different address:
@@ -116,14 +116,14 @@ Other providers only need a different address:
 | OpenRouter (most models) | `https://openrouter.ai/api/v1` |
 | Ollama on your laptop | `http://localhost:11434/v1` (no key needed) |
 
-For reasoning models, `GRIDFORGE_EFFORT=high` sets the reasoning effort. Results go to
+For reasoning models, `STICKLER_EFFORT=high` sets the reasoning effort. Results go to
 `results/<model>/results.jsonl`, with every prompt, answer and token count.
 
 **Using your own harness instead?** Take the puzzles as one file and score your answers:
 
 ```bash
-python3 -m gridforge export                       # data/gridforge-74.jsonl: id, prompt, answer
-python3 -m gridforge score my_predictions.jsonl   # one JSON per line: {"id", "reply"} or {"id", "grid"}
+python3 -m stickler export                       # data/stickler-74.jsonl: id, prompt, answer
+python3 -m stickler score my_predictions.jsonl   # one JSON per line: {"id", "reply"} or {"id", "grid"}
 ```
 
 **Get on the leaderboard:** open a pull request that adds your `results/<model>/` folder. Say which
@@ -136,15 +136,15 @@ model, which settings and the date.
 You need **Python 3.9 or newer**. The puzzle code has no other requirements.
 
 ```bash
-git clone https://github.com/mayankvashishtt/gridforge.git
-cd gridforge
+git clone https://github.com/mayankvashishtt/stickler.git
+cd stickler
 
 # see one puzzle and its secret rule
-python3 -m gridforge show --seed 3 --depth 2 --size m --rule
+python3 -m stickler show --seed 3 --depth 2 --size m --rule
 
 # check the puzzles are solvable: a perfect solver must get 100%, copying the input must get 0%
-python3 -m gridforge validate --seeds 0-19
-python3 -m gridforge validate --families life,count,sizecolor --seeds 0-9 --sizes m,l
+python3 -m stickler validate --seeds 0-19
+python3 -m stickler validate --families life,count,sizecolor --seeds 0-9 --sizes m,l
 ```
 
 ### Test a Claude model
@@ -153,10 +153,10 @@ This uses the [Claude Code](https://claude.com/claude-code) CLI (`claude`) with 
 
 ```bash
 # Game of Life puzzles, large and huge grids, 8 at a time
-python3 -m gridforge run --agent claude --families life --seeds 4-13 --sizes l,xl --workers 8 --out results/my-run
+python3 -m stickler run --agent claude --families life --seeds 4-13 --sizes l,xl --workers 8 --out results/my-run
 
 # pick a model
-python3 -m gridforge run --agent claude --model sonnet --families life --seeds 4-13 --sizes l,xl --out results/sonnet-run
+python3 -m stickler run --agent claude --model sonnet --families life --seeds 4-13 --sizes l,xl --out results/sonnet-run
 ```
 
 To repeat the full comparison above:
@@ -190,11 +190,11 @@ python3 scripts/cards.py results/my-run/results.jsonl proof/
 
 ## Use it to train a model (RL environment)
 
-GridForge also works as a training environment, not just a test.
+Stickler also works as a training environment, not just a test.
 
 ```python
-from gridforge.gen import generate
-from gridforge.episode import GridEnv
+from stickler.gen import generate
+from stickler.episode import GridEnv
 
 env = GridEnv(generate(seed=1, depth=2, size="m"), max_turns=3)
 prompt = env.reset()
@@ -215,14 +215,14 @@ never memorise them.
 
 | Path | What is inside |
 | --- | --- |
-| `gridforge/grid.py` | grid basics: shapes, reading and printing grids |
-| `gridforge/prims.py` | the 24 building blocks for chain rules |
-| `gridforge/gen.py` | makes chain puzzles and runs the fairness check |
-| `gridforge/hard.py` | Game of Life, count neighbours and colour by size puzzles |
-| `gridforge/episode.py` | the prompt, answer reading, scoring and the RL environment |
-| `gridforge/agents.py` | the solvers: perfect solver, copy baseline, Claude CLI, any OpenAI-style API |
-| `gridforge/runner.py` | runs many puzzles and writes the results |
+| `stickler/grid.py` | grid basics: shapes, reading and printing grids |
+| `stickler/prims.py` | the 24 building blocks for chain rules |
+| `stickler/gen.py` | makes chain puzzles and runs the fairness check |
+| `stickler/hard.py` | Game of Life, count neighbours and colour by size puzzles |
+| `stickler/episode.py` | the prompt, answer reading, scoring and the RL environment |
+| `stickler/agents.py` | the solvers: perfect solver, copy baseline, Claude CLI, any OpenAI-style API |
+| `stickler/runner.py` | runs many puzzles and writes the results |
 | `scripts/` | screenshots, comparison table, comparison runs |
 | `results/` | every run, every answer |
-| `data/gridforge-74.jsonl` | the 74 leaderboard puzzles with answers, for other harnesses |
+| `data/stickler-74.jsonl` | the 74 leaderboard puzzles with answers, for other harnesses |
 | `proof/`, `slack-post/` | images |

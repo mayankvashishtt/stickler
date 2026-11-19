@@ -110,7 +110,7 @@ def report(recs):
 
     agent = recs[0]["agent"] if recs else "?"
     solved = sum(r["solved"] for r in recs)
-    out = [f"# GridForge report: {agent}", "",
+    out = [f"# Stickler report: {agent}", "",
            f"Solved {solved}/{len(recs)} ({solved / max(1, len(recs)):.0%}).", "",
            table("depth", "depth"), table("size", "size"), "### Every task", "",
            "| id | solved | cell acc | rule |", "| --- | --- | --- | --- |"]

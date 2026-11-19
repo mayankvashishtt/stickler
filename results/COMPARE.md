@@ -1,4 +1,4 @@
-# GridForge: model comparison
+# Stickler: model comparison
 
 Same 74 puzzles for every model (2 ambiguous ones dropped), Claude Code CLI, all tools off, one attempt, exact match.
 

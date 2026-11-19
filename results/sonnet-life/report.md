@@ -1,4 +1,4 @@
-# GridForge report: claude:sonnet
+# Stickler report: claude:sonnet
 
 Solved 1/20 (5%).
 

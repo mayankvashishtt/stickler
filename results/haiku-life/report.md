@@ -1,4 +1,4 @@
-# GridForge report: claude:haiku
+# Stickler report: claude:haiku
 
 Solved 0/20 (0%).
 

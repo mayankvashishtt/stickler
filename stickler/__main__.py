@@ -1,4 +1,4 @@
-"""CLI: python3 -m gridforge {show,validate,run,bench,export,score}"""
+"""CLI: python3 -m stickler {show,validate,run,bench,export,score}"""
 import argparse
 import sys
 
@@ -19,7 +19,7 @@ def ints(s):
 
 
 def main(argv=None):
-    ap = argparse.ArgumentParser(prog="gridforge")
+    ap = argparse.ArgumentParser(prog="stickler")
     sub = ap.add_subparsers(dest="cmd", required=True)
     s = sub.add_parser("show", help="print the prompt for one task")
     s.add_argument("--seed", type=int, default=0)
@@ -45,7 +45,7 @@ def main(argv=None):
     b.add_argument("--workers", type=int, default=4)
     b.add_argument("--out", help="default results/<model>")
     e = sub.add_parser("export", help="write the 74 puzzles as JSONL (prompt + answer) for any harness")
-    e.add_argument("--out", default="data/gridforge-74.jsonl")
+    e.add_argument("--out", default="data/stickler-74.jsonl")
     sc = sub.add_parser("score", help="score a predictions JSONL ({id, reply} or {id, grid}) against the 74")
     sc.add_argument("predictions")
     a = ap.parse_args(argv)

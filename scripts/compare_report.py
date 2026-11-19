@@ -54,7 +54,7 @@ def stats(recs):
 def main():
     data = {name: stats(load(tag)) for tag, name in MODELS}
     names = [n for _, n in MODELS if data[n][1][1]]
-    md = ["# GridForge: model comparison", "",
+    md = ["# Stickler: model comparison", "",
           f"Same {data[names[0]][1][1]} puzzles for every model (2 ambiguous ones dropped), Claude Code CLI, all tools off, one attempt, exact match.", "",
           "| Puzzle type | " + " | ".join(names) + " |", "| --- |" + " --- |" * len(names)]
     for label, _, _ in CATS:
@@ -92,7 +92,7 @@ td b{font-size:19px}td span{color:#8a94a6;font-size:15px;margin-left:6px}
 tr.tot th,tr.tot td{background:#1b2230;border-top:1px solid #3a4558}
 .foot{margin-top:22px;color:#9aa3b2;font-size:15px}"""
     head = "<thead><tr><th></th>" + "".join(f"<th>{n}</th>" for n in names) + "</tr></thead>"
-    body = ("<div class='tag'>GridForge &middot; same 74 puzzles, every model</div>"
+    body = ("<div class='tag'>Stickler &middot; same 74 puzzles, every model</div>"
             "<h1>Fable wins. Every model still breaks on Game of Life.</h1>"
             "<p class='sub'>Spotting a rule is easy for the big models. Applying it exactly to every square is not: even the best "
             "model failed 11 of 28 Game of Life puzzles. Haiku gave up on 20 puzzles and asked for a hint.</p>"

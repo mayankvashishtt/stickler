@@ -86,7 +86,7 @@ def page(body):
 
 FOOT = ("<div class='foot'><b>Claude solved 5 of 20 of these puzzles.</b> Model: Claude Opus 5.5 (Claude Code), "
         "every tool switched off. Each puzzle is freshly generated and checked so that only one answer fits the "
-        "4 examples. GridForge benchmark.</div>")
+        "4 examples. Stickler benchmark.</div>")
 
 TASK = ("<div class='task'><b>The task:</b> a secret rule turns one grid into another. Claude sees 4 examples, "
         "must work out the rule, then apply it to a new grid. The rule: every square looks at its 8 neighbours "

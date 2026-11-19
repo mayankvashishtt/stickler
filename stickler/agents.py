@@ -87,7 +87,7 @@ class OpenAICompatAgent(Agent):
     OPENAI_BASE_URL     default https://api.openai.com/v1
                         e.g. https://generativelanguage.googleapis.com/v1beta/openai (Gemini),
                         https://api.deepseek.com/v1, https://openrouter.ai/api/v1, http://localhost:11434/v1 (Ollama)
-    GRIDFORGE_EFFORT    optional reasoning_effort (low/medium/high) for reasoning models
+    STICKLER_EFFORT    optional reasoning_effort (low/medium/high) for reasoning models
     """
 
     def __init__(self, model, timeout=1800):
@@ -96,7 +96,7 @@ class OpenAICompatAgent(Agent):
         self.model, self.timeout = model, timeout
         self.base = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1").rstrip("/")
         self.key = os.environ.get("OPENAI_API_KEY", "")
-        self.effort = os.environ.get("GRIDFORGE_EFFORT")
+        self.effort = os.environ.get("STICKLER_EFFORT")
         self.name = f"openai:{model}"
         self.usage = {}
 

@@ -1,4 +1,4 @@
-# GridForge report: claude:default
+# Stickler report: claude:default
 
 Solved 23/27 (85%).
 

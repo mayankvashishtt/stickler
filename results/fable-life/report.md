@@ -1,4 +1,4 @@
-# GridForge report: claude:claude-fable-5-2
+# Stickler report: claude:claude-fable-5-2
 
 Solved 11/20 (55%).
 

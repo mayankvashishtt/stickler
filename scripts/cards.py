@@ -73,7 +73,7 @@ def card(rec, out_dir):
     else:
         pred_html, verdict = "<div class='big'>no grid</div>", rec.get("error") or "no answer"
     body = (
-        f"<div class='tag'>Real run &middot; GridForge</div>"
+        f"<div class='tag'>Real run &middot; Stickler</div>"
         f"<h1>Claude got this puzzle wrong</h1>"
         f"<div class='lbl'>The examples it was given</div><div class='row'>{ex_panels}</div>"
         f"<div class='sec row'>"
