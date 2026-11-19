@@ -94,6 +94,43 @@ part of the comparison.
 
 ---
 
+## Test your own model
+
+Any model behind an OpenAI-style API works: OpenAI, Gemini, DeepSeek, OpenRouter, or a local model with
+Ollama or vLLM. It gets the **same 74 puzzles** as the table above, with no tools and one try each.
+
+```bash
+git clone https://github.com/mayankvashishtt/gridforge.git && cd gridforge
+
+export OPENAI_API_KEY=...                       # your own key
+python3 -m gridforge bench --model gpt-5-mini --workers 8
+```
+
+Other providers only need a different address:
+
+| Provider | `OPENAI_BASE_URL` |
+| --- | --- |
+| OpenAI | (leave unset) |
+| Gemini | `https://generativelanguage.googleapis.com/v1beta/openai` |
+| DeepSeek | `https://api.deepseek.com/v1` |
+| OpenRouter (most models) | `https://openrouter.ai/api/v1` |
+| Ollama on your laptop | `http://localhost:11434/v1` (no key needed) |
+
+For reasoning models, `GRIDFORGE_EFFORT=high` sets the reasoning effort. Results go to
+`results/<model>/results.jsonl`, with every prompt, answer and token count.
+
+**Using your own harness instead?** Take the puzzles as one file and score your answers:
+
+```bash
+python3 -m gridforge export                       # data/gridforge-74.jsonl: id, prompt, answer
+python3 -m gridforge score my_predictions.jsonl   # one JSON per line: {"id", "reply"} or {"id", "grid"}
+```
+
+**Get on the leaderboard:** open a pull request that adds your `results/<model>/` folder. Say which
+model, which settings and the date.
+
+---
+
 ## How to run it
 
 You need **Python 3.9 or newer**. The puzzle code has no other requirements.
@@ -110,7 +147,7 @@ python3 -m gridforge validate --seeds 0-19
 python3 -m gridforge validate --families life,count,sizecolor --seeds 0-9 --sizes m,l
 ```
 
-### Test a model
+### Test a Claude model
 
 This uses the [Claude Code](https://claude.com/claude-code) CLI (`claude`) with every tool turned off.
 
@@ -183,8 +220,9 @@ never memorise them.
 | `gridforge/gen.py` | makes chain puzzles and runs the fairness check |
 | `gridforge/hard.py` | Game of Life, count neighbours and colour by size puzzles |
 | `gridforge/episode.py` | the prompt, answer reading, scoring and the RL environment |
-| `gridforge/agents.py` | the solvers: perfect solver, copy baseline, Claude CLI |
+| `gridforge/agents.py` | the solvers: perfect solver, copy baseline, Claude CLI, any OpenAI-style API |
 | `gridforge/runner.py` | runs many puzzles and writes the results |
 | `scripts/` | screenshots, comparison table, comparison runs |
 | `results/` | every run, every answer |
+| `data/gridforge-74.jsonl` | the 74 leaderboard puzzles with answers, for other harnesses |
 | `proof/`, `slack-post/` | images |

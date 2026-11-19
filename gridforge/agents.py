@@ -1,10 +1,14 @@
-"""Agents: oracle (knows the rule), copy (returns the input), claude (sealed CLI)."""
+"""Agents: oracle (knows the rule), copy (returns the input), claude (sealed CLI),
+openai (any OpenAI-compatible chat API: OpenAI, Gemini, DeepSeek, OpenRouter, Ollama, vLLM...)."""
 from __future__ import annotations
 
 import json
 import os
 import subprocess
 import tempfile
+import time
+import urllib.error
+import urllib.request
 
 from .gen import Task
 from .grid import to_text
@@ -76,5 +80,61 @@ class ClaudeCLIAgent(Agent):
         return reply
 
 
+class OpenAICompatAgent(Agent):
+    """Any OpenAI-compatible /chat/completions endpoint. No tools are offered, same as the Claude runs.
+
+    OPENAI_API_KEY      your key (not needed for a local server)
+    OPENAI_BASE_URL     default https://api.openai.com/v1
+                        e.g. https://generativelanguage.googleapis.com/v1beta/openai (Gemini),
+                        https://api.deepseek.com/v1, https://openrouter.ai/api/v1, http://localhost:11434/v1 (Ollama)
+    GRIDFORGE_EFFORT    optional reasoning_effort (low/medium/high) for reasoning models
+    """
+
+    def __init__(self, model, timeout=1800):
+        if not model:
+            raise ValueError("--model is required for --agent openai")
+        self.model, self.timeout = model, timeout
+        self.base = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1").rstrip("/")
+        self.key = os.environ.get("OPENAI_API_KEY", "")
+        self.effort = os.environ.get("GRIDFORGE_EFFORT")
+        self.name = f"openai:{model}"
+        self.usage = {}
+
+    def reset(self, task):
+        super().reset(task)
+        self.messages = []
+
+    def act(self, obs):
+        self.messages.append({"role": "user", "content": obs})
+        body = {"model": self.model, "messages": self.messages}
+        if self.effort:
+            body["reasoning_effort"] = self.effort
+        headers = {"Content-Type": "application/json"}
+        if self.key:
+            headers["Authorization"] = f"Bearer {self.key}"
+        req = urllib.request.Request(self.base + "/chat/completions", json.dumps(body).encode(), headers)
+        for attempt in range(6):
+            try:
+                with urllib.request.urlopen(req, timeout=self.timeout) as r:
+                    data = json.load(r)
+                break
+            except urllib.error.HTTPError as e:
+                if e.code in (429, 500, 502, 503, 504) and attempt < 5:
+                    time.sleep(5 * 2 ** attempt)
+                    continue
+                raise RuntimeError(f"HTTP {e.code}: {e.read().decode()[:300]}") from None
+        msg = data["choices"][0]["message"]
+        if msg.get("tool_calls"):
+            raise RuntimeError("model tried to call a tool")
+        reply = msg.get("content") or ""
+        self.usage = data.get("usage") or {}
+        self.messages.append({"role": "assistant", "content": reply})
+        return reply
+
+
 def make_agent(name, model=None):
-    return {"oracle": OracleAgent, "copy": CopyAgent}[name]() if name != "claude" else ClaudeCLIAgent(model)
+    if name == "claude":
+        return ClaudeCLIAgent(model)
+    if name == "openai":
+        return OpenAICompatAgent(model)
+    return {"oracle": OracleAgent, "copy": CopyAgent}[name]()

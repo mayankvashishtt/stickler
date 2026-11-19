@@ -23,6 +23,23 @@ def build_suite(seeds, depths, sizes, n_train=4, families=("chain",)):
     return tasks
 
 
+# The fixed 74-puzzle set every model on the leaderboard was run on.
+BENCH = [  # (seeds, depths, sizes, families)
+    (range(10, 18), (2, 3), ("m", "l"), ("chain",)),
+    (range(0, 4), (2,), ("m", "l"), ("life", "count", "sizecolor")),
+    (range(4, 14), (2,), ("l", "xl"), ("life",)),
+]
+# Found ambiguous on review (another simple rule also fits the examples): dropped for every model.
+EXCLUDE = {"d2l/17", "d2m/13"}
+
+
+def bench_suite():
+    tasks = []
+    for seeds, depths, sizes, fams in BENCH:
+        tasks += build_suite(list(seeds), list(depths), list(sizes), 4, fams)
+    return [t for t in tasks if t.id not in EXCLUDE]
+
+
 def run_one(agent_name, model, task, turns):
     agent = make_agent(agent_name, model)
     agent.reset(task)
@@ -44,7 +61,8 @@ def run_one(agent_name, model, task, turns):
             "cell_acc": last["cell_acc"], "error": last["error"], "rewards": rewards,
             "turns": len(rewards), "seconds": round(time.time() - t0, 1),
             "test_in": task.test_in, "expected": task.test_out, "pred": last["pred"],
-            "train": task.train, "prompts": prompts, "replies": replies}
+            "train": task.train, "prompts": prompts, "replies": replies,
+            "usage": getattr(agent, "usage", None) or None}
 
 
 def run_suite(agent_name, tasks, turns=1, model=None, workers=1, out_dir=None):

@@ -1,10 +1,10 @@
-"""CLI: python3 -m gridforge {show,validate,run}"""
+"""CLI: python3 -m gridforge {show,validate,run,bench,export,score}"""
 import argparse
 import sys
 
 from .episode import prompt
 from .gen import generate
-from .runner import build_suite, run_suite
+from .runner import bench_suite, build_suite, run_suite
 
 
 def ints(s):
@@ -39,7 +39,44 @@ def main(argv=None):
             p.add_argument("--agent", default="claude")
             p.add_argument("--model")
             p.add_argument("--turns", type=int, default=1)
+    b = sub.add_parser("bench", help="run a model on the fixed 74-puzzle leaderboard set")
+    b.add_argument("--agent", default="openai", help="openai (any OpenAI-compatible API) or claude")
+    b.add_argument("--model", required=True)
+    b.add_argument("--workers", type=int, default=4)
+    b.add_argument("--out", help="default results/<model>")
+    e = sub.add_parser("export", help="write the 74 puzzles as JSONL (prompt + answer) for any harness")
+    e.add_argument("--out", default="data/gridforge-74.jsonl")
+    sc = sub.add_parser("score", help="score a predictions JSONL ({id, reply} or {id, grid}) against the 74")
+    sc.add_argument("predictions")
     a = ap.parse_args(argv)
+
+    if a.cmd == "bench":
+        out = a.out or "results/" + a.model.replace("/", "_").replace(":", "_")
+        recs = run_suite(a.agent, bench_suite(), 1, a.model, a.workers, out)
+        print(f"\n{a.model}: solved {sum(r['solved'] for r in recs)}/{len(recs)}  -> {out}/results.jsonl")
+        return
+    if a.cmd == "export":
+        import json
+        import os
+        os.makedirs(os.path.dirname(a.out) or ".", exist_ok=True)
+        with open(a.out, "w") as f:
+            for t in bench_suite():
+                f.write(json.dumps({"id": t.id, "prompt": prompt(t), "train": t.train, "test_input": t.test_in,
+                                    "answer": t.test_out}) + "\n")
+        print(f"wrote {a.out}")
+        return
+    if a.cmd == "score":
+        import json
+        from .episode import parse_answer
+        gold = {t.id: t.test_out for t in bench_suite()}
+        got = {}
+        for line in open(a.predictions):
+            r = json.loads(line)
+            got[r["id"]] = r["grid"] if "grid" in r else parse_answer(r.get("reply") or "")[0]
+        solved = sum(1 for k, v in gold.items() if got.get(k) == v)
+        missing = sum(1 for k in gold if k not in got)
+        print(f"solved {solved}/{len(gold)}" + (f"  ({missing} puzzles had no prediction)" if missing else ""))
+        return
 
     if a.cmd == "show":
         t = generate(a.seed, a.depth, a.size)
