@@ -128,13 +128,13 @@ canvas{display:block;width:100%;height:auto;border-radius:6px}
   <section class="lb">
     <h2>Leaderboard</h2>
     <div id="lb"></div>
-    <p class="note">Models: Claude Code CLI, all tools off, one try each, exact match, same 74 puzzles.
+    <p class="note">Models: Claude Code CLI or Codex CLI (GPT), all tools off, one try each, exact match, same 74 puzzles.
       Your score stays in this browser.</p>
   </section>
 </div>
 
 <script>
-const MODELS = ["Fable 5.2", "Opus 5.5", "Sonnet 5.5", "Haiku 5.5"];
+let MODELS = ["Fable 5.2", "Opus 5.5", "GPT-6.2-Astra", "GPT-6.2-Sol", "Sonnet 5.5", "Haiku 5.5"];  // shown only if puzzles.json has results for them
 const cssv = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const COL = () => Array.from({length: 10}, (_, i) => cssv(`--c${i}`));
 const $ = (s) => document.querySelector(s);
@@ -265,6 +265,7 @@ function esc(s) { return String(s).replace(/[&<>"]/g, (c) => ({"&": "&amp;", "<"
 fetch("puzzles.json").then((r) => r.json()).then((d) => {
   const ord = ["Colour by size", "Chain rules, 2 steps", "Count neighbours", "Chain rules, 3 steps", "Game of Life, medium", "Game of Life, large", "Game of Life, huge"];
   P = d.sort((a, b) => ord.indexOf(a.cat) - ord.indexOf(b.cat));
+  MODELS = MODELS.filter((m) => P.some((p) => p.models[m]));
   palette(); pick(decodeURIComponent(location.hash.slice(1)) || null); board();
 });
 addEventListener("hashchange", () => { const id = decodeURIComponent(location.hash.slice(1)); if (P.length && id && id !== cur?.id) pick(id); });

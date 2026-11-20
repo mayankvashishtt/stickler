@@ -12,7 +12,8 @@ sys.path.insert(0, os.path.dirname(__file__))
 from cards import CHROME, trim  # noqa: E402
 
 ROOT = os.path.join(os.path.dirname(__file__), "..")
-MODELS = [("claude", "Opus 5.5"), ("fable", "Fable 5.2"), ("sonnet", "Sonnet 5.5"), ("haiku", "Haiku 5.5")]
+MODELS = [("claude", "Opus 5.5"), ("fable", "Fable 5.2"), ("sonnet", "Sonnet 5.5"), ("haiku", "Haiku 5.5"),
+          ("gpt-astra", "GPT-6.2-Astra"), ("gpt-sol", "GPT-6.2-Sol")]
 # Found ambiguous on review (another simple rule also fits the examples): dropped for every model.
 EXCLUDE = {"d2l/17", "d2m/13"}
 CATS = [  # (label, plain explanation, id prefixes)
@@ -28,8 +29,8 @@ CATS = [  # (label, plain explanation, id prefixes)
 
 def load(tag):
     recs = {}
-    for suite in ("hard", "tough", "life"):
-        p = os.path.join(ROOT, "results", f"{tag}-{suite}", "results.jsonl")
+    for suite in ("hard", "tough", "life", None):  # Claude runs were split in 3; later runs are one folder
+        p = os.path.join(ROOT, "results", f"{tag}-{suite}" if suite else tag, "results.jsonl")
         if os.path.exists(p):
             for line in open(p):
                 r = json.loads(line)
@@ -55,7 +56,7 @@ def main():
     data = {name: stats(load(tag)) for tag, name in MODELS}
     names = [n for _, n in MODELS if data[n][1][1]]
     md = ["# Stickler: model comparison", "",
-          f"Same {data[names[0]][1][1]} puzzles for every model (2 ambiguous ones dropped), Claude Code CLI, all tools off, one attempt, exact match.", "",
+          f"Same {data[names[0]][1][1]} puzzles for every model (2 ambiguous ones dropped), all tools off (Claude Code CLI, or Codex CLI for GPT), one attempt, exact match.", "",
           "| Puzzle type | " + " | ".join(names) + " |", "| --- |" + " --- |" * len(names)]
     for label, _, _ in CATS:
         md.append(f"| {label} | " + " | ".join(

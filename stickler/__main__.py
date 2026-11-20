@@ -40,7 +40,7 @@ def main(argv=None):
             p.add_argument("--model")
             p.add_argument("--turns", type=int, default=1)
     b = sub.add_parser("bench", help="run a model on the fixed 74-puzzle leaderboard set")
-    b.add_argument("--agent", default="openai", help="openai (any OpenAI-compatible API) or claude")
+    b.add_argument("--agent", default="openai", help="openai (any OpenAI-compatible API), claude or codex")
     b.add_argument("--model", required=True)
     b.add_argument("--workers", type=int, default=4)
     b.add_argument("--out", help="default results/<model>")

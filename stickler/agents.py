@@ -1,4 +1,4 @@
-"""Agents: oracle (knows the rule), copy (returns the input), claude (sealed CLI),
+"""Agents: oracle (knows the rule), copy (returns the input), claude (sealed CLI), codex (sealed CLI),
 openai (any OpenAI-compatible chat API: OpenAI, Gemini, DeepSeek, OpenRouter, Ollama, vLLM...)."""
 from __future__ import annotations
 
@@ -92,6 +92,79 @@ class ClaudeCLIAgent(Agent):
         return reply
 
 
+class CodexCLIAgent(Agent):
+    """`codex exec` sealed as far as the CLI allows: empty dir, read-only sandbox, user config
+    (MCP servers, plugins) ignored, extra features off. Codex always has a shell tool, so any
+    tool event in the trace voids the answer, the same rule as the Claude runs.
+
+    STICKLER_EFFORT    optional model_reasoning_effort (low/medium/high/xhigh)
+    """
+
+    OFF = ["apps", "browser_use", "computer_use", "image_generation", "multi_agent", "plugins",
+           "in_app_browser", "goals", "hooks"]
+    OK_ITEMS = {"agent_message", "reasoning", "error"}
+
+    def __init__(self, model=None, timeout=900):
+        self.model, self.timeout = model, timeout
+        self.effort = os.environ.get("STICKLER_EFFORT")
+        self.name = f"codex:{model or 'default'}"
+        self.usage = {}
+
+    def reset(self, task):
+        super().reset(task)
+        self.transcript = []
+
+    def act(self, obs):
+        self.transcript.append(obs)
+        text = self.transcript[0]
+        for i, t in enumerate(self.transcript[1:]):
+            tag = "Your previous reply" if i % 2 == 0 else "Feedback"
+            text += f"\n\n## {tag}\n\n{t}"
+        with tempfile.TemporaryDirectory() as tmp:
+            cmd = ["codex", "exec", "--json", "--skip-git-repo-check", "--ephemeral",
+                   "--ignore-user-config", "--ignore-rules", "-s", "read-only", "-C", tmp,
+                   "-c", "web_search=\"disabled\""]
+            for f in self.OFF:
+                cmd += ["--disable", f]
+            if self.model:
+                cmd += ["-m", self.model]
+            if self.effort:
+                cmd += ["-c", f'model_reasoning_effort="{self.effort}"']
+            proc = subprocess.run(cmd + ["-"], input=text, capture_output=True, text=True,
+                                  timeout=self.timeout, cwd=tmp)
+        reply, tools, failed = "", [], None
+        for line in proc.stdout.splitlines():
+            try:
+                ev = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            t = ev.get("type")
+            if t == "item.completed":
+                item = ev.get("item") or {}
+                if item.get("type") == "agent_message":
+                    reply = item.get("text") or reply
+                elif item.get("type") not in self.OK_ITEMS:
+                    tools.append(item.get("type"))
+            elif t == "item.started" and (ev.get("item") or {}).get("type") not in self.OK_ITEMS:
+                tools.append(ev["item"].get("type"))
+            elif t == "turn.completed":
+                self.usage = ev.get("usage") or {}
+            elif t == "turn.failed":
+                failed = (ev.get("error") or {}).get("message", "")
+        if tools:
+            dbg = os.environ.get("STICKLER_DEBUG_DIR")
+            if dbg:
+                os.makedirs(dbg, exist_ok=True)
+                with open(os.path.join(dbg, f"{self.task.id.replace('/', '_')}.jsonl"), "w") as f:
+                    f.write(proc.stdout)
+            raise RuntimeError(f"model tried to use a tool: {sorted(set(tools))}")
+        if failed is not None:
+            raise RuntimeError("API error, no answer: " + failed[:160].replace("\n", " "))
+        reply = reply or f"(agent error: {proc.stderr.strip()[-300:]})"
+        self.transcript.append(reply)
+        return reply
+
+
 class OpenAICompatAgent(Agent):
     """Any OpenAI-compatible /chat/completions endpoint. No tools are offered, same as the Claude runs.
 
@@ -147,6 +220,8 @@ class OpenAICompatAgent(Agent):
 def make_agent(name, model=None):
     if name == "claude":
         return ClaudeCLIAgent(model, timeout=int(os.environ.get("STICKLER_TIMEOUT", 900)))
+    if name == "codex":
+        return CodexCLIAgent(model, timeout=int(os.environ.get("STICKLER_TIMEOUT", 900)))
     if name == "openai":
         return OpenAICompatAgent(model)
     return {"oracle": OracleAgent, "copy": CopyAgent}[name]()

@@ -126,7 +126,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
       <p class="eyebrow">AI benchmark + training environment</p>
       <h1>AI finds the rule.<br><em>It can't apply it exactly.</em></h1>
       <p class="lede">Stickler is a puzzle test where <b>one wrong square fails the whole answer</b>. Every puzzle is brand new,
-        so no model has seen it. The best model we tested still slipped on 1 in 5.</p>
+        so no model has seen it. The best model we tested still failed 7 of 74.</p>
       <div class="ctas"><a class="btn go" href="play.html">Spot the AI's mistake</a><a class="btn" href="#use">Test your model</a></div>
     </div>
     <figure class="proof" style="margin:0">
@@ -144,7 +144,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
 
   <section id="levels" hidden>
     <h2>Harder levels</h2>
-    <p class="sub">Three extra tests on top of the main 74. Same models, still no tools.</p>
+    <p class="sub">Three extra tests on top of the main 74. Claude models so far (GPT next), still no tools.</p>
     <div class="layers" id="layers"></div>
   </section>
 
@@ -163,9 +163,9 @@ footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
         <li><b>Self-checked.</b> A perfect solver scores 100%, copying the input scores 0%.</li></ul></div>
       <div class="box"><h3>What it found</h3><ul>
         <li><b>Spotting the rule is easy.</b> Opus solved every 3-step chain puzzle.</li>
-        <li><b>Applying it exactly is not.</b> Even Fable failed 11 of 28 Game of Life puzzles.</li>
+        <li><b>Applying it exactly is not.</b> Fable failed 11 of 28 Game of Life puzzles. GPT-6.2-Astra did best there and still failed 3.</li>
         <li><b>Smaller models give up.</b> Haiku solved 0 Game of Life puzzles and often asked for a hint.</li>
-        <li><b>Memory beats evidence.</b> When the rule was one number off the famous Game of Life, Fable and Opus mostly applied the famous one anyway.</li></ul></div>
+        <li><b>Memory beats evidence.</b> When the rule was one number off the famous Game of Life, Fable and Opus mostly applied the famous one anyway (GPT not run on this yet).</li></ul></div>
     </div>
   </section>
 
@@ -240,7 +240,7 @@ stickler score my_predictions.jsonl</div>
 <footer><div class="wrap"><span>Stickler · made by Mayank Vashisht</span><a href="https://github.com/mayankvashishtt/stickler">github.com/mayankvashishtt/stickler</a></div></footer>
 
 <script>
-const MODELS = ["Fable 5.2", "Opus 5.5", "Sonnet 5.5", "Haiku 5.5"];
+let MODELS = ["Fable 5.2", "Opus 5.5", "GPT-6.2-Astra", "GPT-6.2-Sol", "Sonnet 5.5", "Haiku 5.5"];  // shown only if puzzles.json has results for them
 const ORDER = ["Chain rules, 2 steps", "Chain rules, 3 steps", "Colour by size", "Count neighbours", "Game of Life, medium", "Game of Life, large", "Game of Life, huge"];
 const cssv = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const COL = () => Array.from({length: 10}, (_, i) => cssv(`--c${i}`));
@@ -276,6 +276,8 @@ document.querySelectorAll(".copy").forEach((b) => b.onclick = () => {
 });
 
 fetch("puzzles.json").then((r) => r.json()).then((P) => {
+  const won = (m) => P.filter((p) => p.models[m]?.solved).length;
+  MODELS = MODELS.filter((m) => P.some((p) => p.models[m])).sort((x, y) => won(y) - won(x));
   // hero: the famous one-square slip
   const hp = P.find((p) => p.id === "life-l/13") || P[0], hm = hp.models["Opus 5.5"];
   const a = toG(hp.answer), pr = toG(hm.pred), bad = diff(pr, a);

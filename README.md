@@ -56,25 +56,30 @@ Grid sizes: medium (11 to 16 squares a side), large (18 to 26), huge (26 to 30).
 
 ## Results
 
-Same 74 puzzles for every model. Claude Code CLI with **every tool switched off** (no code, no
-calculator, no internet). One try per puzzle.
+Same 74 puzzles for every model, **every tool switched off** (no code, no calculator, no internet).
+One try per puzzle. Claude models ran in the Claude Code CLI; GPT ran in the Codex CLI at high
+reasoning effort, in an empty read-only folder, and any answer where it tried to run a command would
+have been voided (none were).
 
-| Puzzle type | Opus 5.5 | Fable 5.2 | Sonnet 5.5 | Haiku 5.5 |
-| --- | --- | --- | --- | --- |
-| Chain rules, 2 steps | 11/14 | 13/14 | 12/14 | 10/14 |
-| Chain rules, 3 steps | 16/16 | 14/16 | 8/16 | 9/16 |
-| Colour by size | 8/8 | 7/8 | 8/8 | 8/8 |
-| Count neighbours | 7/8 | 8/8 | 1/8 | 3/8 |
-| Game of Life, medium | 1/4 | 2/4 | 1/4 | 0/4 |
-| Game of Life, large | 5/14 | 10/14 | 1/14 | 0/14 |
-| Game of Life, huge | 2/10 | 5/10 | 1/10 | 0/10 |
-| **Total** | **50/74 (68%)** | **59/74 (80%)** | **32/74 (43%)** | **30/74 (41%)** |
+| Puzzle type | GPT-6.2-Astra | Fable 5.2 | Opus 5.5 | Sonnet 5.5 | Haiku 5.5 |
+| --- | --- | --- | --- | --- | --- |
+| Chain rules, 2 steps | 12/14 | 13/14 | 11/14 | 12/14 | 10/14 |
+| Chain rules, 3 steps | 15/16 | 14/16 | 16/16 | 8/16 | 9/16 |
+| Colour by size | 8/8 | 7/8 | 8/8 | 8/8 | 8/8 |
+| Count neighbours | 7/8 | 8/8 | 7/8 | 1/8 | 3/8 |
+| Game of Life, medium | 3/4 | 2/4 | 1/4 | 1/4 | 0/4 |
+| Game of Life, large | 13/14 | 10/14 | 5/14 | 1/14 | 0/14 |
+| Game of Life, huge | 9/10 | 5/10 | 2/10 | 1/10 | 0/10 |
+| **Total** | **67/74 (91%)** | **59/74 (80%)** | **50/74 (68%)** | **32/74 (43%)** | **30/74 (41%)** |
 
 ### What we learned
 
+- **GPT-6.2-Astra leads, and wins on Game of Life.** 25 of 28 Life puzzles vs Fable's 17. One
+  check: a rerun of a puzzle it solved came back wrong (right rule, a few squares off), so single
+  runs carry a few points of noise, and it is not running hidden code.
 - **Spotting a rule is easy for big models.** Opus solved every 3-step chain puzzle.
-- **Applying a rule exactly is hard for all of them.** Even the best model, Fable, failed 11 of 28
-  Game of Life puzzles. Bigger grids mean more failures.
+- **Applying a rule exactly is hard for all of them.** Fable failed 11 of 28
+  Game of Life puzzles, and even GPT-6.2-Astra failed 3. Bigger grids mean more failures.
 - **Small models fall apart on counting.** Haiku solved 0 Game of Life puzzles. On 20 puzzles it
   did not answer at all and asked for a hint instead.
 
