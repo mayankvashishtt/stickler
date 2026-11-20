@@ -98,6 +98,29 @@ More failure screenshots are in [`proof/`](proof). Every model's full answers ar
 `results/claude-pilot` is an early run made before the fairness checks were tightened, so it is not
 part of the comparison.
 
+## Harder levels
+
+Three extra tests on top of the 74, same models, still no tools (`--suite steps|trap|fix`).
+
+| Level | What changes | Fable 5.2 | Opus 5.5 | Sonnet 5.5 | Haiku 5.5 |
+| --- | --- | --- | --- | --- | --- |
+| **Many steps** | apply the rule 3 times in a row | 10/12 | 6/12 | 1/12 | 0/12 |
+| **Trap** | the rule is one number off the famous Game of Life | 6/12 | 6/12 | 3/12 | 2/12 |
+| **Fix the slip** | given a real near-miss answer and told how many squares are wrong | 21/22 | 19/22 | 14/22 | 8/22 |
+
+**Trap is the interesting one.** The examples clearly show the rule is *not* Conway's Game of Life
+(each one shows the difference at least 4 times). Still, on 5 of Fable's 6 fails and 5 of Opus's 6,
+the model said "this is Conway's Game of Life" and applied the famous rule almost perfectly. It
+recognised a pattern it had memorised and stopped reading the evidence.
+
+**Fixing is easy, finding is hard.** Told *exactly* how many squares are wrong, Fable fixes 21 of 22
+near misses. Without that hint, the same slips go unnoticed.
+
+**Tried and dropped: Marathon.** 8 steps on 30x30 grids made every model fail, but mostly because the
+answer ran past API limits (one Fable run thought for ~311,000 tokens and was stopped by the API), not
+because of a wrong grid. That is not a fair result, so it is not on the table; the raw runs are in
+`results/void-marathon8/`. 6 steps on 18-26 grids was solved by Fable 3 of 3 in a pilot.
+
 ---
 
 ## Test your own model

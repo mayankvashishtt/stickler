@@ -29,7 +29,10 @@ class OracleAgent(Agent):
     name = "oracle"
 
     def act(self, obs):
-        return "```grid\n" + to_text(run_chain(self.task.chain, self.task.test_in)) + "\n```"
+        g = self.task.test_in
+        for _ in range(self.task.steps):
+            g = run_chain(self.task.chain, g)
+        return "```grid\n" + to_text(g) + "\n```"
 
 
 class CopyAgent(Agent):
@@ -67,13 +70,22 @@ class ClaudeCLIAgent(Agent):
                 cmd += ["--model", self.model]
             proc = subprocess.run(cmd, input=text, capture_output=True, text=True,
                                   timeout=self.timeout, cwd=tmp)
+        data = None
         try:
             data = json.loads(proc.stdout)
             reply = data.get("result") or ""
             turns = data.get("num_turns") or 1
         except json.JSONDecodeError:
             reply, turns = proc.stdout.strip(), 1
+        if isinstance(data, dict) and data.get("is_error"):
+            # API-side stop (safety filter, limits): not a model answer, and not a tool attempt
+            raise RuntimeError("API error, no answer: " + (data.get("result") or "")[:160].replace("\n", " "))
         if turns > 1:
+            dbg = os.environ.get("STICKLER_DEBUG_DIR")
+            if dbg:
+                os.makedirs(dbg, exist_ok=True)
+                with open(os.path.join(dbg, f"{self.task.id.replace('/', '_')}.json"), "w") as f:
+                    f.write(proc.stdout)
             raise RuntimeError(f"model took {turns} turns: it tried to use a tool")
         reply = reply or f"(agent error: {proc.stderr.strip()[:300]})"
         self.transcript.append(reply)
@@ -134,7 +146,7 @@ class OpenAICompatAgent(Agent):
 
 def make_agent(name, model=None):
     if name == "claude":
-        return ClaudeCLIAgent(model)
+        return ClaudeCLIAgent(model, timeout=int(os.environ.get("STICKLER_TIMEOUT", 900)))
     if name == "openai":
         return OpenAICompatAgent(model)
     return {"oracle": OracleAgent, "copy": CopyAgent}[name]()

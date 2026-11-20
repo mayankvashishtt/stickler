@@ -30,8 +30,19 @@ def prompt(task: Task) -> str:
         parts += [f"## Example {i}", f"Input ({hx}x{wx}):", "```", to_text(x), "```",
                   f"Output ({hy}x{wy}):", "```", to_text(y), "```", ""]
     h, w = dims(task.test_in)
-    parts += [f"## Test", f"Input ({h}x{w}):", "```", to_text(task.test_in), "```",
-              "", "What is the output grid?"]
+    parts += [f"## Test", f"Input ({h}x{w}):", "```", to_text(task.test_in), "```", ""]
+    if task.steps > 1:
+        parts += [f"The examples show ONE application of the rule. For the test, apply the rule "
+                  f"{task.steps} times in a row: each output becomes the next input.",
+                  f"What is the grid after {task.steps} steps? Give only the final grid."]
+    elif task.given is not None:
+        n = task.given_wrong
+        parts += ["## A proposed answer",
+                  "Someone applied the rule to the test input and got this grid:", "```", to_text(task.given), "```",
+                  f"Exactly {n} square{'s are' if n > 1 else ' is'} wrong. Find {'them' if n > 1 else 'it'} "
+                  "and give the fully corrected output grid."]
+    else:
+        parts += ["What is the output grid?"]
     return "\n".join(parts)
 
 

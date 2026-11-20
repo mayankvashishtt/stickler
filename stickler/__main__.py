@@ -4,7 +4,7 @@ import sys
 
 from .episode import prompt
 from .gen import generate
-from .runner import bench_suite, build_suite, run_suite
+from .runner import SUITES, bench_suite, build_suite, run_suite
 
 
 def ints(s):
@@ -44,6 +44,7 @@ def main(argv=None):
     b.add_argument("--model", required=True)
     b.add_argument("--workers", type=int, default=4)
     b.add_argument("--out", help="default results/<model>")
+    b.add_argument("--suite", default="main", help="main (the 74), steps (rule applied 3 times), fix (correct a near miss), marathon (large busy grids, rule applied 6 times)")
     e = sub.add_parser("export", help="write the 74 puzzles as JSONL (prompt + answer) for any harness")
     e.add_argument("--out", default="data/stickler-74.jsonl")
     sc = sub.add_parser("score", help="score a predictions JSONL ({id, reply} or {id, grid}) against the 74")
@@ -51,8 +52,10 @@ def main(argv=None):
     a = ap.parse_args(argv)
 
     if a.cmd == "bench":
-        out = a.out or "results/" + a.model.replace("/", "_").replace(":", "_")
-        recs = run_suite(a.agent, bench_suite(), 1, a.model, a.workers, out)
+        suffix = "" if a.suite == "main" else "-" + a.suite
+        out = a.out or "results/" + a.model.replace("/", "_").replace(":", "_") + suffix
+        tasks = bench_suite() if a.suite == "main" else SUITES[a.suite]()
+        recs = run_suite(a.agent, tasks, 1, a.model, a.workers, out)
         print(f"\n{a.model}: solved {sum(r['solved'] for r in recs)}/{len(recs)}  -> {out}/results.jsonl")
         return
     if a.cmd == "export":

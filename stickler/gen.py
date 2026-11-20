@@ -33,9 +33,13 @@ class Task:
     test_out: Grid
     effective_depth: int = 0       # shortest library rule that explains the train pairs
     n_consistent: int = 0          # how many short rules fit the train pairs (all agree on test)
+    steps: int = 1                 # "many steps" layer: apply the rule this many times to the test
+    given: Optional[Grid] = None   # "fix the slip" layer: a near-miss answer to correct
+    given_wrong: int = 0           # how many squares of `given` are wrong (told to the model)
 
     def rule(self) -> str:
-        return " -> ".join(p.describe() for p in self.chain)
+        r = " -> ".join(p.describe() for p in self.chain)
+        return f"{r} (applied {self.steps} times)" if self.steps > 1 else r
 
 
 # ---- scenes -------------------------------------------------------------------

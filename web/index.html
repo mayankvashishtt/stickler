@@ -104,6 +104,13 @@ tr.us td{background:color-mix(in srgb,var(--accent) 9%,transparent)}
 .card .go{display:inline-block;margin-top:14px;font-weight:700}
 footer{border-top:1px solid var(--line);padding:28px 0 50px;color:var(--mute);font-size:14px}
 footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.layers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+@media (max-width:820px){.layers{grid-template-columns:minmax(0,1fr)}}
+.layer{background:var(--card);border:1.5px solid var(--line);border-radius:18px;padding:18px}
+.layer .k{font:700 12px "JetBrains Mono",monospace;color:var(--accent);text-transform:uppercase;letter-spacing:.08em}
+.layer h3{margin:4px 0 4px;font-size:24px;letter-spacing:-.03em}
+.layer p{margin:0 0 12px;color:var(--mute);font-size:15px}
+.layer .lrow{grid-template-columns:100px 1fr 60px;padding:7px 0}
 </style>
 </head>
 <body>
@@ -135,6 +142,12 @@ footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
     <div class="tablewrap"><table id="cats"></table></div>
   </section>
 
+  <section id="levels" hidden>
+    <h2>Harder levels</h2>
+    <p class="sub">Three extra tests on top of the main 74. Same models, still no tools.</p>
+    <div class="layers" id="layers"></div>
+  </section>
+
   <section id="how">
     <h2>How it works</h2>
     <p class="sub">A hidden rule changes a grid. The model sees 4 examples and has to draw the next answer, square by square.</p>
@@ -151,7 +164,8 @@ footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
       <div class="box"><h3>What it found</h3><ul>
         <li><b>Spotting the rule is easy.</b> Opus solved every 3-step chain puzzle.</li>
         <li><b>Applying it exactly is not.</b> Even Fable failed 11 of 28 Game of Life puzzles.</li>
-        <li><b>Smaller models give up.</b> Haiku solved 0 Game of Life puzzles and often asked for a hint.</li></ul></div>
+        <li><b>Smaller models give up.</b> Haiku solved 0 Game of Life puzzles and often asked for a hint.</li>
+        <li><b>Memory beats evidence.</b> When the rule was one number off the famous Game of Life, Fable and Opus mostly applied the famous one anyway.</li></ul></div>
     </div>
   </section>
 
@@ -184,6 +198,11 @@ pip install git+https://github.com/mayankvashishtt/stickler
 <span class="c"># run the 74 leaderboard puzzles on your model</span>
 export OPENAI_API_KEY=<span class="s">sk-...</span>
 stickler bench --model <span class="s">gpt-5-mini</span> --workers 8
+
+<span class="c"># harder levels</span>
+stickler bench --model <span class="s">gpt-5-mini</span> --suite steps   <span class="c"># rule applied 3 times</span>
+stickler bench --model <span class="s">gpt-5-mini</span> --suite trap    <span class="c"># rule one number off a famous one</span>
+stickler bench --model <span class="s">gpt-5-mini</span> --suite fix     <span class="c"># fix a near-miss answer</span>
 
 <span class="c"># other providers: set the address</span>
 export OPENAI_BASE_URL=<span class="s">https://openrouter.ai/api/v1</span></div>
@@ -280,6 +299,17 @@ fetch("puzzles.json").then((r) => r.json()).then((P) => {
   const sp = P.find((p) => p.id === "d2m/10"), sm = sp.models["Sonnet 5.5"];
   mini($("#m3"), {g: toG(sp.answer)}, {g: toG(sm.pred), w: diff(toG(sm.pred), toG(sp.answer))});
 });
+
+fetch("layers.json").then((r) => r.ok ? r.json() : null).then((L) => {
+  if (!L || !L.layers.some((l) => Object.keys(l.models).length)) return;
+  $("#layers").innerHTML = L.layers.map((l, k) => {
+    const rows = Object.entries(l.models).sort((a, b) => b[1].solved - a[1].solved);
+    return `<div class="layer"><span class="k">level ${k + 2}</span><h3>${l.title}</h3><p>${l.what}</p>` +
+      rows.map(([m, v], i) => `<div class="lrow${i ? "" : " top"}"><span>${m}</span><div class="bar"><i data-w="${100 * v.solved / v.n}"></i></div><b>${v.solved}/${v.n}</b></div>`).join("") + "</div>";
+  }).join("");
+  $("#levels").hidden = false;
+  setTimeout(() => document.querySelectorAll("#layers .bar i").forEach((i) => i.style.width = i.dataset.w + "%"), 80);
+}).catch(() => {});
 </script>
 </body>
 </html>

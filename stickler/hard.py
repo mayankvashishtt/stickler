@@ -218,3 +218,75 @@ def generate_hard(seed: int, family: str, size: str = "l", n_train: int = 4, max
         return Task(id=f"{family}-{size}/{seed}", seed=seed, depth=family, size=size, chain=[rule],
                     train=train, test_in=grids[-1], test_out=outs[-1], effective_depth=0)
     raise RuntimeError(f"no fair {family} task for seed {seed}")
+
+
+def generate_steps(seed: int, size: str = "m", k: int = 3, n_train: int = 4, busy: float = 0.0):
+    """'Many steps' layer: a fair Life puzzle whose test asks for k steps instead of one.
+
+    Every intermediate grid must only need neighbour cases the examples show, so the
+    examples still pin the answer down; what grows is the work, and errors compound.
+    """
+    for s in range(seed * 1000, seed * 1000 + 400):
+        try:
+            t = generate_hard(s, "life", size, n_train)
+        except RuntimeError:
+            continue
+        rule, g, ok = t.chain[0], t.test_in, True
+        h, w = dims(g)
+        for i in range(k):
+            nxt = rule.apply(g)
+            if i and not fair("life", t.train, g, nxt):
+                ok = False
+                break
+            # busy: every step must keep enough squares lit and change enough of them
+            live = sum(1 for r in nxt for v in r if v) / (h * w)
+            changed = sum(1 for ra, rb in zip(g, nxt) for a, b in zip(ra, rb) if a != b) / (h * w)
+            if busy and (live < busy or changed < busy * 0.6):
+                ok = False
+                break
+            g = nxt
+        if not ok or not any(any(r) for r in g) or g == rule.apply(t.test_in):
+            continue
+        t.id, t.seed, t.depth, t.steps, t.test_out = f"steps{k}-{size}/{seed}", seed, f"steps{k}", k, g
+        return t
+    raise RuntimeError(f"no fair {k}-step task for seed {seed}")
+
+
+CONWAY = ((3,), (2, 3))      # born, stay: the famous Game of Life
+
+
+def generate_trap(seed: int, size: str = "m", n_train: int = 4, min_evidence: int = 4, min_diff: float = 0.08):
+    """'Trap' layer: a Life rule one number away from Conway's famous B3/S23.
+
+    The examples must show the difference at least `min_evidence` times, and applying
+    Conway's rule to the test must get at least `min_diff` of the squares wrong. So a
+    model that pattern-matches to the rule it memorised fails, one that reads the
+    examples does not.
+    """
+    from .gen import SIZES, Task
+    rng = random.Random(seed * 7907 + 99991 + sum(map(ord, size)))
+    lo, hi = SIZES[size]
+    for _ in range(5000):
+        born, stay = set(CONWAY[0]), set(CONWAY[1])
+        which, n = rng.choice([("born", 2), ("born", 4), ("born", 6), ("stay", 1), ("stay", 4),
+                               ("stay", 2), ("stay", 3)])
+        (born if which == "born" else stay).symmetric_difference_update({n})
+        colour = rng.randint(1, 9)
+        rule = LocalRule("life", (("born", tuple(sorted(born))), ("stay", tuple(sorted(stay))), ("c", colour)))
+        conway = LocalRule("life", (("born", CONWAY[0]), ("stay", CONWAY[1]), ("c", colour)))
+        grids = [_rand_grid(rng, rng.randint(lo, hi), rng.randint(lo, hi), rng.uniform(0.3, 0.45), colour)
+                 for _ in range(n_train + 1)]
+        outs = [rule.apply(g) for g in grids]
+        train = list(zip(grids[:-1], outs[:-1]))
+        if any(x == y for x, y in train) or not fair("life", train, grids[-1], outs[-1]):
+            continue
+        key = (which == "stay", n)
+        evidence = sum(1 for x, _ in train for y, xx in _cells(x)
+                       if (bool(x[y][xx]), _n(x, y, xx, N8)) == key)
+        h, w = dims(grids[-1])
+        diff = sum(1 for ra, rb in zip(outs[-1], conway.apply(grids[-1])) for a, b in zip(ra, rb) if a != b) / (h * w)
+        if evidence < min_evidence or diff < min_diff:
+            continue
+        return Task(id=f"trap-{size}/{seed}", seed=seed, depth="trap", size=size, chain=[rule],
+                    train=train, test_in=grids[-1], test_out=outs[-1], effective_depth=0)
+    raise RuntimeError(f"no trap task for seed {seed}")

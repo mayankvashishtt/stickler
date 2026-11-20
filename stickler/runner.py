@@ -40,6 +40,76 @@ def bench_suite():
     return [t for t in tasks if t.id not in EXCLUDE]
 
 
+def steps_suite(k=3):
+    """Layer 1, many steps: 8 medium + 4 large Life puzzles, rule applied k times."""
+    from .hard import generate_steps
+    return [generate_steps(s, z, k) for z, seeds in (("m", range(0, 8)), ("l", range(8, 12))) for s in seeds]
+
+
+def task_by_id(pid):
+    from .hard import generate_hard
+    head, seed = pid.split("/")
+    fam, size = head.rsplit("-", 1) if "-" in head else ("chain", head[2:])
+    if fam == "chain":
+        return generate(int(seed), int(head[1]), size)
+    return generate_hard(int(seed), fam, size)
+
+
+# Layer 2, fix the slip: real leaderboard answers with 1-6 wrong squares (one per puzzle).
+FIX = [("life-m/2", "Opus 5.5"), ("d2m/10", "Sonnet 5.5"), ("count-m/2", "Sonnet 5.5"),
+       ("d3m/17", "Fable 5.2"), ("count-m/1", "Haiku 5.5"), ("life-l/13", "Opus 5.5"),
+       ("life-l/2", "Haiku 5.5"), ("life-l/3", "Opus 5.5"), ("life-xl/4", "Sonnet 5.5"),
+       ("d3m/15", "Fable 5.2"), ("life-l/0", "Opus 5.5"), ("life-l/12", "Sonnet 5.5"),
+       ("life-l/4", "Fable 5.2"), ("life-xl/13", "Haiku 5.5"), ("count-l/1", "Haiku 5.5"),
+       ("life-l/9", "Opus 5.5"), ("life-m/1", "Opus 5.5"), ("count-m/3", "Sonnet 5.5"),
+       ("d3m/10", "Haiku 5.5"), ("sizecolor-m/2", "Fable 5.2"), ("d3l/11", "Sonnet 5.5"),
+       ("life-xl/8", "Fable 5.2")]
+FIX_RUNS = {"Fable 5.2": "fable", "Opus 5.5": "claude", "Sonnet 5.5": "sonnet", "Haiku 5.5": "haiku"}
+
+
+def fix_suite():
+    """Each task: the original puzzle plus a real near-miss answer and how many squares are wrong."""
+    import glob
+    here = os.path.join(os.path.dirname(__file__), "..", "results")
+    preds = {}
+    for name, tag in FIX_RUNS.items():
+        for f in glob.glob(os.path.join(here, f"{tag}-*", "results.jsonl")):
+            if f.split(os.sep)[-2].endswith("pilot"):
+                continue
+            for line in open(f):
+                r = json.loads(line)
+                preds[(r["id"], name)] = r.get("pred")
+    tasks = []
+    for pid, who in FIX:
+        t, g = task_by_id(pid), preds[(pid, who)]
+        t.given = [list(r) for r in g]
+        t.given_wrong = sum(a != b for ra, rb in zip(g, t.test_out) for a, b in zip(ra, rb))
+        assert 1 <= t.given_wrong <= 6, (pid, t.given_wrong)
+        t.id = f"fix-{pid}"
+        tasks.append(t)
+    return tasks
+
+
+def marathon_suite(k=6, size="l"):
+    """Layer 3, marathon: 10 large (18-26 square) Life grids, rule applied k times.
+
+    Every step must keep at least 25% of squares lit and change at least 15%, so the
+    work never thins out into an empty grid. (8 steps on 30x30 grids was tried first:
+    answers ran past API limits, so most runs ended with no answer at all.)
+    """
+    from .hard import generate_steps
+    return [generate_steps(s, size, k, busy=0.25) for s in range(40, 50)]
+
+
+def trap_suite(n=12):
+    """Layer 4, trap: medium Life puzzles whose rule is one number off Conway's famous one."""
+    from .hard import generate_trap
+    return [generate_trap(s, "m") for s in range(n)]
+
+
+SUITES = {"steps": steps_suite, "fix": fix_suite, "marathon": marathon_suite, "trap": trap_suite}
+
+
 def run_one(agent_name, model, task, turns):
     agent = make_agent(agent_name, model)
     agent.reset(task)
