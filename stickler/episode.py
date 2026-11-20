@@ -23,6 +23,9 @@ digits separated by spaces, for example:
 
 
 def prompt(task: Task) -> str:
+    if getattr(task, "kind", None) == "table":
+        from . import tables
+        return tables.prompt(task)
     parts = [INSTRUCTIONS, ""]
     for i, (x, y) in enumerate(task.train, 1):
         hx, wx = dims(x)
@@ -59,6 +62,9 @@ def parse_answer(reply: str) -> Tuple[Optional[Grid], Optional[str]]:
 
 
 def grade(task: Task, reply: str) -> dict:
+    if getattr(task, "kind", None) == "table":
+        from . import tables
+        return tables.grade(task, reply)
     g, err = parse_answer(reply)
     if g is None:
         return {"solved": False, "cell_acc": 0.0, "error": err, "pred": None}
@@ -92,7 +98,8 @@ class GridEnv:
         if res["solved"]:
             obs = "Correct."
         elif res["pred"] is None:
-            obs = f"Could not read your grid: {res['error']}. Reply again with a ```grid block."
+            block = "table" if getattr(self.task, "kind", None) == "table" else "grid"
+            obs = f"Could not read your {block}: {res['error']}. Reply again with a ```{block} block."
         elif res["error"]:
             obs = f"Wrong: {res['error']}. Try again."
         else:

@@ -107,7 +107,14 @@ def trap_suite(n=12):
     return [generate_trap(s, "m") for s in range(n)]
 
 
-SUITES = {"steps": steps_suite, "fix": fix_suite, "marathon": marathon_suite, "trap": trap_suite}
+def tables_suite():
+    """Tables level: the same test on tables of numbers (see stickler/tables.py)."""
+    from .tables import tables_suite as build
+    return build()
+
+
+SUITES = {"steps": steps_suite, "fix": fix_suite, "marathon": marathon_suite, "trap": trap_suite,
+          "tables": tables_suite}
 
 
 def run_one(agent_name, model, task, turns):

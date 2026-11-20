@@ -105,18 +105,26 @@ part of the comparison.
 
 ## Harder levels
 
-Three extra tests on top of the 74, same models, still no tools (`--suite steps|trap|fix`).
+Four extra tests on top of the 74, same models, still no tools (`--suite steps|trap|fix|tables`).
 
-| Level | What changes | Fable 5.2 | Opus 5.5 | Sonnet 5.5 | Haiku 5.5 |
-| --- | --- | --- | --- | --- | --- |
-| **Many steps** | apply the rule 3 times in a row | 10/12 | 6/12 | 1/12 | 0/12 |
-| **Trap** | the rule is one number off the famous Game of Life | 6/12 | 6/12 | 3/12 | 2/12 |
-| **Fix the slip** | given a real near-miss answer and told how many squares are wrong | 21/22 | 19/22 | 14/22 | 8/22 |
+| Level | What changes | GPT-6.2-Astra | Fable 5.2 | Opus 5.5 | Sonnet 5.5 | Haiku 5.5 |
+| --- | --- | --- | --- | --- | --- | --- |
+| **Many steps** | apply the rule 3 times in a row | 8/12 | 10/12 | 6/12 | 1/12 | 0/12 |
+| **Trap** | the rule is one number off the famous Game of Life | 11/12 | 6/12 | 6/12 | 3/12 | 2/12 |
+| **Fix the slip** | given a real near-miss answer and told how many squares are wrong | 22/22 | 21/22 | 19/22 | 14/22 | 8/22 |
+| **Tables** (control) | the same test on tables of numbers, 8 to 48 rows | 24/24 | 23/24 | 21/24 | 22/24 | 22/24 |
 
 **Trap is the interesting one.** The examples clearly show the rule is *not* Conway's Game of Life
 (each one shows the difference at least 4 times). Still, on 5 of Fable's 6 fails and 5 of Opus's 6,
 the model said "this is Conway's Game of Life" and applied the famous rule almost perfectly. It
-recognised a pattern it had memorised and stopped reading the evidence.
+recognised a pattern it had memorised and stopped reading the evidence. GPT-6.2-Astra mostly did not
+fall for it (11 of 12); its one fail was the same mistake.
+
+**It is the grid, not the maths (Tables).** The same "find the rule, apply it exactly" test, on tables
+of numbers instead of grids: add a column, running totals, rank, group totals, filters, up to 48 rows of
+4-digit numbers, with the same fairness check (`stickler/tables.py`). Every model scores 21 to 24 of 24.
+Haiku, which solved 0 of 28 Game of Life grids, solves 22 of 24 tables. So the grid failures are about
+tracking a 2D picture exactly, not about arithmetic.
 
 **Fixing is easy, finding is hard.** Told *exactly* how many squares are wrong, Fable fixes 21 of 22
 near misses. Without that hint, the same slips go unnoticed.

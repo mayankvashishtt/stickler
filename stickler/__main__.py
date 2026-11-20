@@ -44,7 +44,7 @@ def main(argv=None):
     b.add_argument("--model", required=True)
     b.add_argument("--workers", type=int, default=4)
     b.add_argument("--out", help="default results/<model>")
-    b.add_argument("--suite", default="main", help="main (the 74), steps (rule applied 3 times), fix (correct a near miss), marathon (large busy grids, rule applied 6 times)")
+    b.add_argument("--suite", default="main", help="main (the 74), steps (rule applied 3 times), fix (correct a near miss), marathon (large busy grids, rule applied 6 times), trap, tables (same test on tables of numbers)")
     e = sub.add_parser("export", help="write the 74 puzzles as JSONL (prompt + answer) for any harness")
     e.add_argument("--out", default="data/stickler-74.jsonl")
     sc = sub.add_parser("score", help="score a predictions JSONL ({id, reply} or {id, grid}) against the 74")

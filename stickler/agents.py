@@ -29,6 +29,9 @@ class OracleAgent(Agent):
     name = "oracle"
 
     def act(self, obs):
+        if getattr(self.task, "kind", None) == "table":
+            from .tables import to_text as table_text
+            return "```table\n" + table_text(self.task.solve(self.task.test_in)) + "\n```"
         g = self.task.test_in
         for _ in range(self.task.steps):
             g = run_chain(self.task.chain, g)
@@ -40,6 +43,9 @@ class CopyAgent(Agent):
     name = "copy"
 
     def act(self, obs):
+        if getattr(self.task, "kind", None) == "table":
+            from .tables import to_text as table_text
+            return "```table\n" + table_text(self.task.test_in) + "\n```"
         return "```grid\n" + to_text(self.task.test_in) + "\n```"
 
 
