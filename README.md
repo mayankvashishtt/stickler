@@ -104,6 +104,15 @@ More failure screenshots are in [`proof/`](proof). Every model's full answers ar
 `results/claude-pilot` is an early run made before the fairness checks were tightened, so it is not
 part of the comparison.
 
+### How sure are we?
+
+One attempt per puzzle, so some gaps could be luck. Resampling the 74 puzzles 10,000 times
+(`python3 scripts/stats.py`, full table in [`results/STATS.md`](results/STATS.md)):
+
+- **Clear gaps:** GPT-6.2-Astra > Fable 5.2 > Opus 5.5 and GPT-6.2-Sol > Sonnet 5.5 and Haiku 5.5.
+  Astra vs Fable is the closest of these (Astra ahead in 98% of resamples).
+- **Too close to call:** Opus vs GPT-6.2-Sol (a tie), and Sonnet vs Haiku.
+
 ## Harder levels
 
 Four extra tests on top of the 74, same models, still no tools (`--suite steps|trap|fix|tables`).
