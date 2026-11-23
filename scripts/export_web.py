@@ -40,7 +40,7 @@ def main():
         for _, name in MODELS:
             m = by_model[name].get(pid)
             if m:
-                p["models"][name] = {"solved": m["solved"], "acc": m["cell_acc"], "secs": m["seconds"],
+                p["models"][name] = {"solved": m["solved"], "acc": m["cell_acc"], "secs": m.get("seconds"),
                                      "pred": g(m.get("pred")), "said": rule_line((m.get("replies") or [None])[-1])}
         out.append(p)
     json.dump(out, open(os.path.join(ROOT, "web", "puzzles.json"), "w"), separators=(",", ":"))
