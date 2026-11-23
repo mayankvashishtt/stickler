@@ -27,12 +27,19 @@ def _n(g, y, x, offs):
 N8 = [(dy, dx) for dy in (-1, 0, 1) for dx in (-1, 0, 1) if (dy, dx) != (0, 0)]
 N4 = [(-1, 0), (1, 0), (0, -1), (0, 1)]
 ND = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
+NK = [(dy, dx) for dy in (-2, -1, 1, 2) for dx in (-2, -1, 1, 2) if abs(dy) != abs(dx)]   # knight moves
+NH = [(0, -2), (0, -1), (0, 1), (0, 2)]                                                  # 2 left, 2 right
+NV = [(-2, 0), (-1, 0), (1, 0), (2, 0)]                                                  # 2 up, 2 down
+HOODS = {"n4": N4, "diag": ND, "knight": NK, "hline": NH, "vline": NV}
 
 CELL_FEATURES: Dict[str, Callable] = {
     "alive+n8": lambda g, y, x: (bool(g[y][x]), _n(g, y, x, N8)),
     "alive+n4": lambda g, y, x: (bool(g[y][x]), _n(g, y, x, N4)),
     "alive+diag": lambda g, y, x: (bool(g[y][x]), _n(g, y, x, ND)),
     "alive+n4+diag": lambda g, y, x: (bool(g[y][x]), _n(g, y, x, N4), _n(g, y, x, ND)),
+    "alive+knight": lambda g, y, x: (bool(g[y][x]), _n(g, y, x, NK)),
+    "alive+hline": lambda g, y, x: (bool(g[y][x]), _n(g, y, x, NH)),
+    "alive+vline": lambda g, y, x: (bool(g[y][x]), _n(g, y, x, NV)),
 }
 
 
@@ -117,6 +124,14 @@ class LocalRule:
                 n = _n(g, y, x, N8)
                 out[y][x] = c if ((g[y][x] and n in stay) or (not g[y][x] and n in born)) else 0
             return make(out)
+        if self.family == "hood":
+            born, stay, c, offs = set(p["born"]), set(p["stay"]), p["c"], HOODS[p["hood"]]
+            h, w = dims(g)
+            out = blank(h, w)
+            for y, x in _cells(g):
+                n = _n(g, y, x, offs)
+                out[y][x] = c if ((g[y][x] and n in stay) or (not g[y][x] and n in born)) else 0
+            return make(out)
         if self.family == "count":
             cmap = dict(p["map"])
             h, w = dims(g)
@@ -139,6 +154,9 @@ class LocalRule:
         if self.family == "life":
             return (f"one step of a Life-like automaton: empty cell with {sorted(p['born'])} live "
                     f"neighbours is born, live cell with {sorted(p['stay'])} survives (8 neighbours)")
+        if self.family == "hood":
+            return (f"Life-like automaton on a hidden neighbourhood ({p['hood']}): empty cell with "
+                    f"{sorted(p['born'])} live neighbours is born, live cell with {sorted(p['stay'])} survives")
         if self.family == "count":
             return "each empty cell is coloured by its number of filled side-neighbours: " + \
                 ", ".join(f"{k}->{v}" for k, v in sorted(dict(p["map"]).items()))
@@ -162,13 +180,17 @@ def _shapes_grid(rng, h, w, colour, sizes):
 
 
 def fair(family: str, train, test_in, test_out) -> bool:
-    if family in ("life", "count"):
+    if family.startswith("hood:"):
+        feats, learn, use = CELL_FEATURES, _cell_table, _apply_cell_table
+        true_key = "alive+" + family[5:]
+    elif family in ("life", "count"):
         feats = CELL_FEATURES
         learn, use = _cell_table, _apply_cell_table
     else:
         feats = OBJ_FEATURES
         learn, use = _obj_table, _apply_obj_table
-    true_key = "alive+n8" if family == "life" else ("alive+n4" if family == "count" else "size")
+    if not family.startswith("hood:"):
+        true_key = "alive+n8" if family == "life" else ("alive+n4" if family == "count" else "size")
     ok_true = False
     for name, f in feats.items():
         t = learn(f, train)
@@ -198,6 +220,14 @@ def generate_hard(seed: int, family: str, size: str = "l", n_train: int = 4, max
             rule = LocalRule("life", (("born", born), ("stay", stay), ("c", colour)))
             make_in = lambda: _rand_grid(rng, rng.randint(lo, hi), rng.randint(lo, hi),
                                          rng.uniform(0.25, 0.45), colour)
+        elif family == "hood":
+            hood = rng.choice(sorted(HOODS))
+            top = len(HOODS[hood])
+            born = tuple(sorted(rng.sample(range(1, top + 1), rng.randint(1, 2))))
+            stay = tuple(sorted(rng.sample(range(0, top + 1), rng.randint(1, 3))))
+            rule = LocalRule("hood", (("born", born), ("stay", stay), ("c", colour), ("hood", hood)))
+            make_in = lambda: _rand_grid(rng, rng.randint(lo, hi), rng.randint(lo, hi),
+                                         rng.uniform(0.25, 0.45), colour)
         elif family == "count":
             cols = rng.sample([c for c in range(1, 10) if c != colour], 4)
             rule = LocalRule("count", (("map", ((0, 0),) + tuple((k, cols[k - 1]) for k in range(1, 5))),))
@@ -213,7 +243,8 @@ def generate_hard(seed: int, family: str, size: str = "l", n_train: int = 4, max
         if any(x == y for x, y in zip(grids, outs)) or not any(any(r) for r in outs[-1]):
             continue
         train = list(zip(grids[:-1], outs[:-1]))
-        if not fair(family, train, grids[-1], outs[-1]):
+        key = f"hood:{dict(rule.params)['hood']}" if family == "hood" else family
+        if not fair(key, train, grids[-1], outs[-1]):
             continue
         return Task(id=f"{family}-{size}/{seed}", seed=seed, depth=family, size=size, chain=[rule],
                     train=train, test_in=grids[-1], test_out=outs[-1], effective_depth=0)

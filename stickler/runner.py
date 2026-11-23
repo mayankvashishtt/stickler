@@ -13,10 +13,13 @@ from .gen import generate
 
 
 def build_suite(seeds, depths, sizes, n_train=4, families=("chain",)):
+    from .families import FAMILIES, generate_family
     from .hard import generate_hard
     tasks = []
     for fam in families:
-        if fam == "chain":
+        if fam in FAMILIES:
+            tasks += [generate_family(s, fam, z) for z in sizes for s in seeds]
+        elif fam == "chain":
             tasks += [generate(s, d, z, n_train=n_train) for d in depths for z in sizes for s in seeds]
         else:
             tasks += [generate_hard(s, fam, z, n_train=n_train) for z in sizes for s in seeds]
@@ -52,6 +55,9 @@ def task_by_id(pid):
     fam, size = head.rsplit("-", 1) if "-" in head else ("chain", head[2:])
     if fam == "chain":
         return generate(int(seed), int(head[1]), size)
+    from .families import FAMILIES, generate_family
+    if fam in FAMILIES:
+        return generate_family(int(seed), fam, size)
     return generate_hard(int(seed), fam, size)
 
 
@@ -113,7 +119,21 @@ def tables_suite():
     return build()
 
 
-SUITES = {"steps": steps_suite, "fix": fix_suite, "marathon": marathon_suite, "trap": trap_suite,
+def hardboard_suite():
+    """Hard board: Life-like rules on a hidden neighbourhood (4 sides, diagonals, knight moves,
+    or 2 squares along a row or column). The model must work out WHICH squares count, then
+    apply it exactly. 12 large (18-26) + 12 extra-large (26-30) grids."""
+    from .hard import generate_hard
+    return [generate_hard(s, "hood", z) for z in ("l", "xl") for s in range(12)]
+
+
+def breadth_suite():
+    """Pilot of the new families (gravity, mirror, rays, tiling, border): 4 medium + 4 large each."""
+    from .families import FAMILIES, generate_family
+    return [generate_family(s, f, z) for f in FAMILIES for z in ("m", "l") for s in range(4)]
+
+
+SUITES = {"breadth": breadth_suite, "hardboard": hardboard_suite, "steps": steps_suite, "fix": fix_suite, "marathon": marathon_suite, "trap": trap_suite,
           "tables": tables_suite}
 
 
