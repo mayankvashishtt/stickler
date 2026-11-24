@@ -115,14 +115,20 @@ One attempt per puzzle, so some gaps could be luck. Resampling the 74 puzzles 10
 
 ## Harder levels
 
-Four extra tests on top of the 74, same models, still no tools (`--suite steps|trap|fix|tables`).
+Five extra tests on top of the 74, same models, still no tools (`--suite hardboard|steps|trap|fix|tables`).
 
-| Level | What changes | GPT-6.2-Astra | Fable 5.2 | Opus 5.5 | Sonnet 5.5 | Haiku 5.5 |
-| --- | --- | --- | --- | --- | --- | --- |
-| **Many steps** | apply the rule 3 times in a row | 8/12 | 10/12 | 6/12 | 1/12 | 0/12 |
-| **Trap** | the rule is one number off the famous Game of Life | 11/12 | 6/12 | 6/12 | 3/12 | 2/12 |
-| **Fix the slip** | given a real near-miss answer and told how many squares are wrong | 22/22 | 21/22 | 19/22 | 14/22 | 8/22 |
-| **Tables** (control) | the same test on tables of numbers, 8 to 48 rows | 24/24 | 23/24 | 21/24 | 22/24 | 22/24 |
+| Level | What changes | GPT-6.2-Astra | Fable 5.2 | Opus 5.5 | GPT-6.2-Sol | Sonnet 5.5 | Haiku 5.5 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| **Hard board** | Life-like rules where *which squares count as neighbours* is hidden (4 sides, diagonals, knight moves, 2 along a row or column), 18x18 to 30x30 grids | 11/24 | **17/24** | 10/24 | 7/24 | 1/24 | 0/24 |
+| **Many steps** | apply the rule 3 times in a row | 8/12 | 10/12 | 6/12 | – | 1/12 | 0/12 |
+| **Trap** | the rule is one number off the famous Game of Life | 11/12 | 6/12 | 6/12 | – | 3/12 | 2/12 |
+| **Fix the slip** | given a real near-miss answer and told how many squares are wrong | 22/22 | 21/22 | 19/22 | – | 14/22 | 8/22 |
+| **Tables** (control) | the same test on tables of numbers, 8 to 48 rows | 24/24 | 23/24 | 21/24 | – | 22/24 | 22/24 |
+
+**The Hard board flips the ranking.** On the main board GPT-6.2-Astra leads Fable by 8 points. When the
+model first has to work out *which* squares count as neighbours, Fable leads by 6 puzzles (17 vs 11).
+Knight-move neighbours split them most: Fable solved 5 of 7, Astra 2, Sol 0. Timeouts (15 minutes)
+count as fails, the same rule as the main board.
 
 **Trap is the interesting one.** The examples clearly show the rule is *not* Conway's Game of Life
 (each one shows the difference at least 4 times). Still, on 5 of Fable's 6 fails and 5 of Opus's 6,

@@ -6,8 +6,10 @@ import json
 import os
 
 ROOT = os.path.join(os.path.dirname(__file__), "..")
-MODELS = [("gpt-astra", "GPT-6.2-Astra"), ("fable", "Fable 5.2"), ("claude", "Opus 5.5"), ("sonnet", "Sonnet 5.5"), ("haiku", "Haiku 5.5")]
-LAYERS = [("steps", "Many steps", "Apply the rule 3 times in a row. One early slip spreads."),
+MODELS = [("gpt-astra", "GPT-6.2-Astra"), ("fable", "Fable 5.2"), ("claude", "Opus 5.5"), ("gpt-sol", "GPT-6.2-Sol"),
+          ("sonnet", "Sonnet 5.5"), ("haiku", "Haiku 5.5")]
+LAYERS = [("hardboard", "Hard board", "Life-like rules where the neighbours are hidden: only the 4 sides, only the diagonals, knight moves, or 2 squares along a row. Work out which squares count, then apply it to big grids."),
+          ("steps", "Many steps", "Apply the rule 3 times in a row. One early slip spreads."),
           ("trap", "Trap", "The rule is one number off the famous Game of Life. The examples show the difference. Most fails used the famous rule anyway."),
           ("fix", "Fix the slip", "Given a near-miss answer and told exactly how many squares are wrong, fix it."),
           ("tables", "Tables (control)", "The same test on tables of numbers, up to 48 rows. Everyone does well, so the grid failures are about 2D, not maths.")]
